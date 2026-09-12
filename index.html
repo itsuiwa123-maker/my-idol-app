@@ -236,13 +236,11 @@
         let currentView = 'list';
         let currentMonth = dayjs().startOf('month');
 
-        // 【自動更新対応】Googleスプレッドシートや外部CSVから自動取得する設定（必要に応じてURLを変更可能）
-        // ※空欄の場合は自動でモックデータが生成されます
+        // 【自動更新対応】ここにGoogleスプレッドシートの「ウェブに公開」したCSVのURLを貼り付けてください
         const AUTO_SYNC_CSV_URL = ""; 
 
-        // データのロード（アカウントごとに端末内でのみON/OFF設定を記憶）
+        // データのロード（ブラウザごとのローカルストレージに保存されるため他の人には影響しません）
         function loadUserData() {
-            // グループデータの読み込み（なければ初期値）
             const savedGroups = localStorage.getItem('oshi_cal_groups');
             if (savedGroups) {
                 try {
@@ -257,6 +255,59 @@
 
         function saveUserData() {
             localStorage.setItem('oshi_cal_groups', JSON.stringify(groups));
+        }
+
+        // CSVデータをパースしてイベントにする関数
+        function parseCSVToEvents(csvText) {
+            const lines = csvText.split('\n');
+            const parsedEvents = [];
+            const eventTypes = [
+                { type: 'ライブ', icon: 'ph-microphone-stage' },
+                { type: '配信', icon: 'ph-youtube-logo' },
+                { type: '特典会', icon: 'ph-handshake' },
+                { type: 'イベント', icon: 'ph-calendar-star' }
+            ];
+
+            // 1行目は見出しなので飛ばす (日付, 時間, グループ名, イベント名, 場所, チケットURL, 入場特典, レギュレーション)
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // 簡易CSVパース（カンマ区切り）
+                const cols = line.split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
+                if (cols.length >= 5) {
+                    const [dateStr, timeStr, groupName, eventName, location, ticketUrl, nyutoku, regulation] = cols;
+                    
+                    // グループ名が既存にあるか確認、なければ自動追加
+                    let group = groups.find(g => g.name === groupName);
+                    let groupId;
+                    if (!group) {
+                        groupId = 'g_auto_' + Math.random().toString(36).substring(2, 7);
+                        const colors = ['#ff7ba9', '#fb923c', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
+                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        groups.push({ id: groupId, name: groupName, color: randomColor, active: true, source: 'google' });
+                    } else {
+                        groupId = group.id;
+                    }
+
+                    const fullDateTime = dayjs(`${dateStr} ${timeStr || '12:00'}`);
+                    const matchedType = eventTypes.find(t => eventName.includes(t.type)) || eventTypes[0];
+
+                    parsedEvents.push({
+                        id: `evt_csv_${i}_${Date.now()}`,
+                        groupId: groupId,
+                        title: eventName,
+                        date: fullDateTime.isValid() ? fullDateTime.toISOString() : dayjs().toISOString(),
+                        location: location || '未定',
+                        icon: matchedType.icon,
+                        ticketUrl: ticketUrl || '#',
+                        nyutoku: nyutoku || 'なし',
+                        regulation: regulation || '未発表'
+                    });
+                }
+            }
+            saveUserData();
+            return parsedEvents;
         }
 
         function generateMockEvents(groupId, count = 6) {
@@ -297,12 +348,10 @@
         async function initializeApp() {
             loadUserData();
 
-            // 自動更新データ（スプレッドシート等）がある場合は読み込む、なければモック生成
             if (AUTO_SYNC_CSV_URL) {
                 try {
                     const response = await fetch(AUTO_SYNC_CSV_URL);
                     const csvText = await response.text();
-                    // CSVパース処理などの拡張ポイント
                     events = parseCSVToEvents(csvText);
                 } catch(e) {
                     console.error("自動更新データの取得に失敗しました。モックデータを使用します。", e);
