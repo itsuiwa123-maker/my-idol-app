@@ -131,8 +131,8 @@
                     <input type="text" id="modal-location" placeholder="例: 渋谷O-EAST" class="w-full p-3 bg-pink-50/40 border border-pink-100 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-500 mb-1">レギュレーション（URLまたはメモ）</label>
-                    <input type="text" id="modal-regulation" placeholder="例: https://... または 物販19時〜／ペンライト持込OK" class="w-full p-3 bg-pink-50/40 border border-pink-100 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400">
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">入場特典・時間などのメモ</label>
+                    <textarea id="modal-regulation" rows="3" placeholder="例: 入場 17:00／特典会 18:00〜／開演 19:00" class="w-full p-3 bg-pink-50/40 border border-pink-100 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none"></textarea>
                 </div>
                 <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold rounded-2xl shadow-md shadow-pink-500/30 hover:opacity-95 transition text-xs mt-2">保存する</button>
             </form>
@@ -270,13 +270,15 @@
             render();
         }
 
+        function mapsUrl(location) {
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+        }
+
         function renderRegulationHtml(e) {
             if (!e.regulation) return '';
-            const isUrl = /^https?:\/\//i.test(e.regulation.trim());
-            if (isUrl) {
-                return `<a href="${e.regulation}" target="_blank" class="text-[11px] font-semibold text-purple-500 hover:underline flex items-center mb-1"><i class="fa-solid fa-file-lines mr-1.5"></i>レギュレーションを見る</a>`;
-            }
-            return `<p class="text-[11px] text-slate-500 flex items-start mb-1"><i class="fa-solid fa-file-lines mr-1.5 mt-0.5 text-purple-400"></i><span>${e.regulation}</span></p>`;
+            const lines = e.regulation.split('\n').map(l => l.trim()).filter(Boolean);
+            const linesHtml = lines.map(l => `<p>${l}</p>`).join('');
+            return `<div class="bg-purple-50/70 text-purple-700 text-[11px] font-semibold px-3 py-2.5 rounded-2xl flex items-start space-x-2"><i class="fa-solid fa-star mt-0.5 text-purple-400"></i><div class="space-y-0.5">${linesHtml}</div></div>`;
         }
 
         function getRandomColor() {
@@ -398,7 +400,7 @@
                             <h4 class="font-bold text-slate-800 text-sm leading-snug">${e.title}</h4>
                             ${isExpanded ? `
                                 <div class="mt-3 pt-3 border-t border-pink-50 space-y-2">
-                                    ${e.location ? `<div class="flex items-center space-x-2 bg-pink-50/70 text-pink-600 text-[11px] font-semibold px-3 py-2.5 rounded-2xl"><i class="fa-solid fa-location-dot"></i><span>${e.location}</span></div>` : ''}
+                                    ${e.location ? `<a href="${mapsUrl(e.location)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center space-x-2 bg-pink-50/70 text-pink-600 text-[11px] font-semibold px-3 py-2.5 rounded-2xl hover:bg-pink-100 transition"><i class="fa-solid fa-location-dot"></i><span>${e.location}</span><i class="fa-solid fa-arrow-up-right-from-square text-[9px] ml-auto opacity-60"></i></a>` : ''}
                                     ${renderRegulationHtml(e)}
                                     ${!e.isSheet ? `<div class="flex justify-end pt-1"><button onclick="event.stopPropagation(); deleteEvent('${e.id}')" class="text-slate-300 hover:text-red-500 text-[11px] transition"><i class="fa-solid fa-trash"></i> 削除</button></div>` : ''}
                                 </div>
@@ -491,7 +493,7 @@
                                 <span class="text-xs font-semibold text-slate-400">${e.time}</span>
                             </div>
                             <h5 class="font-bold text-xs text-slate-800 mb-1">${e.title}</h5>
-                            ${e.location ? `<p class="text-[11px] text-slate-500 flex items-center mb-1"><i class="fa-solid fa-location-dot mr-1.5 text-pink-400"></i>${e.location}</p>` : ''}
+                            ${e.location ? `<a href="${mapsUrl(e.location)}" target="_blank" class="text-[11px] text-pink-600 font-semibold flex items-center mb-1 hover:underline"><i class="fa-solid fa-location-dot mr-1.5 text-pink-400"></i>${e.location}</a>` : ''}
                             ${renderRegulationHtml(e)}
                         </div>
                     </div>
