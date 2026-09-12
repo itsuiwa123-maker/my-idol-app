@@ -1,15 +1,14 @@
-
+```h
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idol Schedule Aggregator</title>
+    <title>Oshi-Cal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/ja.js"></script>
-    <!-- 丸みを帯びた優しいフォントを採用 -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
     
     <script>
@@ -21,9 +20,9 @@
                         sans: ['"M PLUS Rounded 1c"', 'sans-serif'],
                     },
                     colors: {
-                        primary: '#ff8ebf', // 少し柔らかいピンクに
-                        secondary: '#8ebcff', // 少し柔らかいブルーに
-                        bg: '#fdfbfb', // 真っ白ではなく、ごく僅かに温かみのある背景色
+                        primary: '#ff8ebf',
+                        secondary: '#8ebcff',
+                        bg: '#fdfbfb',
                         card: '#ffffff',
                     },
                     boxShadow: {
@@ -38,18 +37,15 @@
         body { background-color: #fdfbfb; color: #475569; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
         .modal-overlay, .sidebar-overlay {
             background-color: rgba(71, 85, 105, 0.4);
             backdrop-filter: blur(4px);
         }
-
         .details-content {
             transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out;
             max-height: 0;
@@ -60,8 +56,6 @@
             max-height: 600px;
             opacity: 1;
         }
-
-        /* カレンダーの日付セルのホバー効果 */
         .calendar-day:hover {
             background-color: #f1f5f9;
             transform: scale(1.05);
@@ -78,7 +72,6 @@
             <h1 class="text-xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent tracking-wide">Oshi-Cal</h1>
         </div>
         <div class="flex items-center gap-3">
-            <!-- View Toggle (List / Calendar) -->
             <div class="hidden sm:flex bg-gray-100 p-1 rounded-full items-center">
                 <button onclick="setView('list')" id="btnViewList" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
                 <button onclick="setView('calendar')" id="btnViewCalendar" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700">カレンダー</button>
@@ -90,12 +83,8 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden relative">
-        
-        <!-- Mobile Sidebar Overlay (修正ポイント：サイドバーの後ろに暗い背景を置いてタップ領域を確保) -->
         <div id="sidebarOverlay" class="fixed inset-0 sidebar-overlay z-30 hidden opacity-0 transition-opacity duration-300 md:hidden" onclick="toggleMobileSidebar()"></div>
 
-        <!-- Sidebar (Group Filters) -->
-        <!-- 修正ポイント：z-indexを40に上げ、日付ヘッダー(z-10)より確実に上に表示。角を丸く。 -->
         <aside id="sidebar" class="fixed md:relative w-72 h-full bg-white/95 backdrop-blur-xl border-r border-gray-100 flex flex-col transition-transform duration-300 z-40 transform -translate-x-full md:translate-x-0 shrink-0 shadow-2xl md:shadow-none rounded-r-3xl md:rounded-none">
             <div class="p-5 border-b border-gray-50 flex justify-between items-center md:hidden">
                 <h2 class="font-bold text-gray-800 text-lg">グループ設定</h2>
@@ -106,15 +95,13 @@
             
             <div class="flex-1 overflow-y-auto p-5 hide-scrollbar">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold text-gray-400 text-xs tracking-widest uppercase">フォロー中</h2>
+                    <h2 class="font-bold text-gray-400 text-xs tracking-widest uppercase">フォロー中 (この端末のみ)</h2>
                     <button onclick="openModal()" class="text-primary hover:bg-pink-50 p-1.5 rounded-full transition-colors flex items-center justify-center" title="新しく追加">
                         <i class="ph-bold ph-plus text-lg"></i>
                     </button>
                 </div>
                 
-                <div id="groupList" class="flex flex-col gap-2">
-                    <!-- Groups injected by JS -->
-                </div>
+                <div id="groupList" class="flex flex-col gap-2"></div>
             </div>
 
             <div class="p-5 bg-gradient-to-t from-gray-50 to-white/0 border-t border-gray-50">
@@ -125,11 +112,8 @@
             </div>
         </aside>
 
-        <!-- Main Content (Schedule View) -->
         <main class="flex-1 overflow-y-auto bg-bg p-4 md:p-8 relative scroll-smooth" id="scheduleMain">
             <div class="max-w-4xl mx-auto pb-24">
-                
-                <!-- Header Controls -->
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight" id="viewTitle">スケジュールまとめ</h2>
                     
@@ -150,13 +134,11 @@
                     </div>
                 </div>
 
-                <!-- View Toggle for Mobile -->
                 <div class="sm:hidden flex bg-gray-100 p-1 rounded-full items-center mb-6 max-w-[200px] mx-auto">
                     <button onclick="setView('list')" id="btnViewListMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
                     <button onclick="setView('calendar')" id="btnViewCalendarMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500">月表示</button>
                 </div>
 
-                <!-- Empty State -->
                 <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-gray-400">
                     <div class="bg-gray-100 p-6 rounded-full mb-4">
                         <i class="ph-duotone ph-calendar-blank text-5xl text-gray-300"></i>
@@ -165,26 +147,19 @@
                     <p class="text-sm mt-2">グループをオンにするか、新しく追加してください</p>
                 </div>
 
-                <!-- Schedule Timeline Container (List View) -->
-                <div id="scheduleTimeline" class="flex flex-col gap-6">
-                    <!-- Events injected by JS -->
-                </div>
+                <div id="scheduleTimeline" class="flex flex-col gap-6"></div>
 
-                <!-- Calendar View Container -->
                 <div id="calendarView" class="hidden bg-white rounded-3xl shadow-soft border border-gray-100 p-4 sm:p-6">
                     <div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-400">
                         <div class="text-red-400">日</div>
                         <div>月</div><div>火</div><div>水</div><div>木</div><div>金</div>
                         <div class="text-blue-400">土</div>
                     </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2">
-                        <!-- Calendar days injected by JS -->
-                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
                 </div>
             </div>
         </main>
 
-        <!-- Floating Action Buttons (右下の固定ボタン) -->
         <div class="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex flex-col gap-3 z-30">
             <button onclick="resetToToday()" class="bg-white text-gray-600 hover:text-primary w-12 h-12 mx-auto rounded-full shadow-soft-lg border border-gray-100 transition-all hover:scale-110 flex items-center justify-center group relative">
                 <i class="ph-bold ph-calendar-check text-xl"></i>
@@ -197,7 +172,6 @@
         </div>
     </div>
 
-    <!-- Add Group Modal -->
     <div id="addModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden" id="addModalContent">
             <div class="p-6 flex justify-between items-center bg-white border-b border-gray-50">
@@ -236,7 +210,6 @@
                         </select>
                         <input type="url" id="sourceUrl" required placeholder="https://..." class="flex-1 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm shadow-sm">
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 font-medium">※デモ版のため、URLを入力すると仮の予定が生成されます。</p>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full py-3.5 mt-2 hover:opacity-90 transition-all shadow-soft-lg hover:-translate-y-1 hover:shadow-primary/30">
@@ -246,24 +219,41 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-6 py-3.5 rounded-full shadow-2xl transition-all duration-300 opacity-0 translate-y-10 z-50 pointer-events-none flex items-center gap-3">
         <i class="ph-fill ph-check-circle text-green-400 text-2xl"></i>
         <span id="toastMessage" class="text-sm font-bold"></span>
     </div>
 
     <script>
-        // App State
-        let groups = [
-            { id: 'g1', name: 'Onephony', color: '#ff7ba9', active: true, source: 'x' },
-            { id: 'g2', name: 'マリークラウン', color: '#60a5fa', active: true, source: 'litlink' },
-            { id: 'g3', name: 'Merry BAD TUNE', color: '#c084fc', active: false, source: 'google' }
+        let defaultGroups = [
+            { id: 'g1', name: 'Starry Girls', color: '#ff7ba9', active: true, source: 'x' },
+            { id: 'g2', name: 'Neon Boys', color: '#60a5fa', active: true, source: 'litlink' },
+            { id: 'g3', name: 'Galaxy Project', color: '#c084fc', active: false, source: 'google' }
         ];
+
+        let groups = [];
         let events = [];
-        let currentView = 'list'; // 'list' or 'calendar'
+        let currentView = 'list';
         let currentMonth = dayjs().startOf('month');
 
-        // Helper: Generate Mock Events
+        // スマホの保存領域からデータを読み込む（なければ初期値）
+        function loadUserData() {
+            const saved = localStorage.getItem('oshi_cal_groups');
+            if (saved) {
+                try {
+                    groups = JSON.parse(saved);
+                } catch(e) {
+                    groups = defaultGroups;
+                }
+            } else {
+                groups = defaultGroups;
+            }
+        }
+
+        function saveUserData() {
+            localStorage.setItem('oshi_cal_groups', JSON.stringify(groups));
+        }
+
         function generateMockEvents(groupId, count = 6) {
             const newEvents = [];
             const eventTypes = [
@@ -272,22 +262,19 @@
                 { type: '特典会', icon: 'ph-handshake', locations: ['池袋サンシャインシティ', '都内某所', 'タワーレコード渋谷'] },
                 { type: 'TV出演', icon: 'ph-television', locations: ['地上波', 'ABEMA'] }
             ];
-            const regulations = ["チェキ券 1,500円 / サイン付き 2,000円\n※列が途切れ次第終了\n※マスク着用必須", "全員チェキ 3,000円 (先着30名)\n個別チェキ 1,500円\nトーク時間1分", "握手券 1,000円 / 撮影券 2,000円", "レギュレーション未発表"];
-            const nyutokus = ["ランダムチェキ1枚", "写メ券1枚", "ポイント2倍", "なし", "直筆サイン入りポスター (抽選)"];
+            const regulations = ["チェキ券 1,500円 / サイン付き 2,000円\n※列が途切れ次第終了", "全員チェキ 3,000円\n個別チェキ 1,500円", "握手券 1,000円", "レギュレーション未発表"];
+            const nyutokus = ["ランダムチェキ1枚", "写メ券1枚", "ポイント2倍", "なし"];
 
             const today = dayjs();
-            
             for (let i = 0; i < count; i++) {
-                // Random day within current month or next 2 weeks
                 const daysOffset = Math.floor(Math.random() * 30) - 5; 
                 const hour = Math.floor(Math.random() * (22 - 12) + 12);
                 const eventDate = today.add(daysOffset, 'day').hour(hour).minute(0);
-                
                 const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
                 const location = eventType.locations[Math.floor(Math.random() * eventType.locations.length)];
 
                 newEvents.push({
-                    id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                    id: `evt_${groupId}_${i}_${Date.now()}`,
                     groupId: groupId,
                     title: `${eventType.type} (${location})`,
                     date: eventDate.toISOString(),
@@ -303,6 +290,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadUserData();
+            
+            // グループごとのモックイベントを生成
             groups.forEach(g => {
                 events = events.concat(generateMockEvents(g.id, 5));
             });
@@ -312,13 +302,11 @@
 
             document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileSidebar);
             document.getElementById('closeSidebarBtn').addEventListener('click', toggleMobileSidebar);
-
             document.getElementById('openAddModalBtn').addEventListener('click', openModal);
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
             document.getElementById('addModal').addEventListener('click', (e) => {
                 if (e.target.id === 'addModal') closeModal();
             });
-
             document.getElementById('addGroupForm').addEventListener('submit', handleAddGroup);
         });
 
@@ -356,29 +344,22 @@
 
         function setView(view) {
             currentView = view;
-            
-            // Toggle desktop buttons
             const btnList = document.getElementById('btnViewList');
             const btnCal = document.getElementById('btnViewCalendar');
+            const btnListM = document.getElementById('btnViewListMobile');
+            const btnCalM = document.getElementById('btnViewCalendarMobile');
+
             if(view === 'list') {
                 btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
                 btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
-            } else {
-                btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
-                btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
-            }
-
-            // Toggle mobile buttons
-            const btnListM = document.getElementById('btnViewListMobile');
-            const btnCalM = document.getElementById('btnViewCalendarMobile');
-            if(view === 'list') {
                 btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
                 btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
             } else {
+                btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
+                btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
                 btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
                 btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
             }
-
             renderCurrentView();
         }
 
@@ -414,7 +395,6 @@
             const grid = document.getElementById('calendarGrid');
             const monthDisplay = document.getElementById('calendarMonthDisplay');
             grid.innerHTML = '';
-            
             monthDisplay.innerText = currentMonth.format('YYYY年 M月');
             
             const activeEvents = getActiveEvents();
@@ -424,19 +404,14 @@
             const endDate = endOfMonth.endOf('week');
             
             let currentDay = startDate;
-            
             while (currentDay.isBefore(endDate) || currentDay.isSame(endDate, 'day')) {
                 const isCurrentMonth = currentDay.month() === currentMonth.month();
                 const isToday = currentDay.isSame(dayjs(), 'day');
                 const dayStr = currentDay.format('YYYY-MM-DD');
-                
-                // Get events for this day
                 const dayEvents = activeEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === dayStr);
                 
                 const cell = document.createElement('div');
                 cell.className = `calendar-day min-h-[80px] sm:min-h-[100px] border border-gray-100 rounded-2xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col ${isCurrentMonth ? 'bg-white' : 'bg-gray-50/50 opacity-60'} ${isToday ? 'ring-2 ring-primary/30 bg-pink-50/30' : ''}`;
-                
-                // Clicking cell switches to list view for that day
                 cell.onclick = () => {
                     document.getElementById('dateFilter').value = dayStr;
                     setView('list');
@@ -451,7 +426,6 @@
                     <div class="flex flex-col gap-1 overflow-hidden flex-1">
                 `;
 
-                // Add small event badges
                 dayEvents.slice(0, 3).forEach(evt => {
                     const group = groups.find(g => g.id === evt.groupId);
                     dayContent += `
@@ -463,11 +437,9 @@
                 if(dayEvents.length > 3) {
                     dayContent += `<div class="text-[10px] text-gray-400 text-center font-bold">+${dayEvents.length - 3}</div>`;
                 }
-
                 dayContent += `</div>`;
                 cell.innerHTML = dayContent;
                 grid.appendChild(cell);
-                
                 currentDay = currentDay.add(1, 'day');
             }
         }
@@ -478,7 +450,6 @@
             container.innerHTML = '';
 
             let activeEvents = getActiveEvents();
-
             const filterDate = document.getElementById('dateFilter').value;
             if (filterDate) {
                 activeEvents = activeEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === filterDate);
@@ -496,7 +467,6 @@
             container.classList.remove('hidden');
             emptyState.classList.add('hidden');
             emptyState.classList.remove('flex');
-
             activeEvents.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
 
             const groupedEvents = {};
@@ -509,7 +479,6 @@
             Object.keys(groupedEvents).sort().forEach(dayStr => {
                 const dayEvents = groupedEvents[dayStr];
                 const dDate = dayjs(dayStr);
-                
                 const isToday = dDate.isSame(dayjs(), 'day');
                 const dayDisplay = dDate.format('M月D日 (ddd)');
                 
@@ -517,7 +486,6 @@
                 dayBlock.className = 'fade-in relative';
                 dayBlock.id = `dayblock-${dayStr}`;
 
-                // 修正ポイント：stickyヘッダーのz-indexを10にしつつ、背景を柔らかく
                 let headerHtml = `
                     <div class="sticky top-0 z-10 bg-[#fdfbfb]/90 backdrop-blur-md py-3 mb-4 flex items-center gap-3">
                         <h3 class="text-xl font-extrabold ${isToday ? 'text-primary' : 'text-gray-800'}">${dayDisplay}</h3>
@@ -526,7 +494,6 @@
                 `;
                 
                 let eventsHtml = `<div class="flex flex-col gap-4">`;
-                
                 dayEvents.forEach(evt => {
                     const group = groups.find(g => g.id === evt.groupId);
                     const timeStr = dayjs(evt.date).format('HH:mm');
@@ -534,10 +501,7 @@
                     
                     eventsHtml += `
                         <div class="group bg-white rounded-[24px] shadow-soft hover:shadow-soft-lg transition-all relative overflow-hidden border border-gray-50/50">
-                            <!-- Left color bar -->
                             <div class="absolute left-0 top-0 bottom-0 w-2" style="background-color: ${group.color}"></div>
-                            
-                            <!-- Main Card Content -->
                             <div class="p-5 cursor-pointer flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 pl-6" onclick="toggleDetails('${evt.id}')">
                                 <div class="text-xl font-extrabold text-gray-700 w-16 shrink-0 tracking-tight">${timeStr}</div>
                                 <div class="flex-1">
@@ -559,7 +523,6 @@
                                 </div>
                             </div>
 
-                            <!-- Expandable Details -->
                             <div id="details-${evt.id}" class="details-content bg-slate-50/50 border-t border-gray-100">
                                 <div class="p-5 sm:px-6 text-sm space-y-5">
                                     <div class="flex items-start gap-4">
@@ -583,19 +546,11 @@
                                             <span class="text-gray-800 font-medium whitespace-pre-line leading-relaxed block bg-white p-3 rounded-xl border border-gray-100 mt-1 shadow-sm">${evt.regulation}</span>
                                         </div>
                                     </div>
-                                    
-                                    <div class="pt-2 mt-2 border-t border-gray-100 border-dashed">
-                                        <button onclick="addToGoogleCalendar('${evt.id}')" class="w-full mt-3 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 py-3 rounded-2xl font-bold transition-all text-sm shadow-sm flex items-center justify-center gap-2">
-                                            <i class="ph-bold ph-calendar-plus text-lg text-blue-500"></i>
-                                            自分のGoogleカレンダーに追加
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-                
                 eventsHtml += `</div>`;
                 dayBlock.innerHTML = headerHtml + eventsHtml;
                 container.appendChild(dayBlock);
@@ -605,7 +560,6 @@
         window.toggleDetails = function(eventId) {
             const detailsElement = document.getElementById(`details-${eventId}`);
             const chevron = document.getElementById(`chevron-${eventId}`);
-            
             if (detailsElement.classList.contains('expanded')) {
                 detailsElement.classList.remove('expanded');
                 chevron.classList.remove('rotate-180');
@@ -619,6 +573,7 @@
             const group = groups.find(g => g.id === groupId);
             if (group) {
                 group.active = !group.active;
+                saveUserData(); // 端末に設定を保存
                 renderSidebar();
                 renderCurrentView();
             }
@@ -627,14 +582,11 @@
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            
             if (sidebar.classList.contains('-translate-x-full')) {
-                // 開く
                 sidebar.classList.remove('-translate-x-full');
                 overlay.classList.remove('hidden');
                 setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             } else {
-                // 閉じる
                 sidebar.classList.add('-translate-x-full');
                 overlay.classList.add('opacity-0');
                 setTimeout(() => overlay.classList.add('hidden'), 300);
@@ -649,7 +601,6 @@
                 modal.classList.remove('opacity-0');
                 content.classList.remove('scale-95');
             }, 10);
-            
             if (!document.getElementById('sidebar').classList.contains('-translate-x-full')) {
                 toggleMobileSidebar();
             }
@@ -668,81 +619,45 @@
 
         function handleAddGroup(e) {
             e.preventDefault();
-            
             const name = document.getElementById('groupName').value;
             const sourceType = document.getElementById('sourceType').value;
             const color = document.querySelector('input[name="color"]:checked').value;
-            
             const newGroupId = 'g' + Date.now();
             
-            groups.push({
+            const newGroup = {
                 id: newGroupId,
                 name: name,
                 color: color,
                 active: true,
                 source: sourceType
-            });
+            };
 
+            groups.push(newGroup);
             const newEvents = generateMockEvents(newGroupId, 6);
             events = events.concat(newEvents);
 
+            saveUserData(); // 端末に保存
             closeModal();
             renderSidebar();
             renderCurrentView();
-            
-            showToast(`${name}を追加し、スケジュールを同期しました！`);
+            showToast(`${name}を追加しました！`);
         }
 
         function showToast(message) {
             const toast = document.getElementById('toast');
             document.getElementById('toastMessage').innerText = message;
-            
             toast.classList.remove('translate-y-10', 'opacity-0');
-            
             setTimeout(() => {
                 toast.classList.add('translate-y-10', 'opacity-0');
             }, 3000);
         }
 
-        window.addToGoogleCalendar = function(eventId) {
-            const evt = events.find(e => e.id === eventId);
-            if (!evt) return;
-            
-            const group = groups.find(g => g.id === evt.groupId);
-            // タイトルにグループ名を付ける
-            const title = encodeURIComponent(`[${group.name}] ${evt.title}`);
-            
-            const start = dayjs(evt.date);
-            // 終了時間が未定義のため、仮で開始から2時間後とする
-            const end = start.add(2, 'hour'); 
-            
-            // Googleカレンダー用のローカルタイムフォーマット YYYYMMDDTHHmmss
-            const dates = `${start.format('YYYYMMDDTHHmmss')}/${end.format('YYYYMMDDTHHmmss')}`;
-            
-            // 詳細欄にチケットやレギュレーションの情報をまとめる
-            let detailsStr = `【チケット情報】\n${evt.ticketUrl}\n\n`;
-            detailsStr += `【入場特典】\n${evt.nyutoku}\n\n`;
-            detailsStr += `【レギュレーション】\n${evt.regulation}`;
-            
-            const details = encodeURIComponent(detailsStr);
-            const location = encodeURIComponent(evt.location);
-            
-            // 予定作成用URLの生成
-            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
-            
-            // 別タブで開く
-            window.open(url, '_blank');
-        };
-
         window.resetToToday = function() {
             if (currentView === 'list') {
                 document.getElementById('dateFilter').value = '';
-                renderCurrentView(); // フィルターリセット
-                
-                // 今日の日付ブロックを探してスクロール
+                renderCurrentView();
                 const todayStr = dayjs().format('YYYY-MM-DD');
                 const todayBlock = document.getElementById(`dayblock-${todayStr}`);
-                
                 if (todayBlock) {
                     todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     showToast('今日の予定に移動しました');
