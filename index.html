@@ -217,7 +217,8 @@ let defaultGroups = [
 let events = [];
 let currentView = 'list';
 let currentMonth = dayjs().startOf('month');
-​const AUTO_SYNC_CSV_URL = "https://docs.google.com/spreadsheets/d/1Pl3WUmqOdgE6IHMxNsOiemRu_A-EDk6xmIino4CKaEQ/export?format=csv";
+​// 【自動更新対応】スプレッドシートのCSV公開URL
+const AUTO_SYNC_CSV_URL = "https://docs.google.com/spreadsheets/d/1Pl3WUmqOdgE6IHMxNsOiemRu_A-EDk6xmIino4CKaEQ/export?format=csv";
 ​function sortGroups() {
 groups.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 }
@@ -306,6 +307,11 @@ try {
 const response = await fetch(AUTO_SYNC_CSV_URL);
 const csvText = await response.text();
 events = parseCSVToEvents(csvText);
+​// 【親切設計】読み込んだイベントの中から一番最初の予定の月にカレンダーを自動合わせする
+if (events.length > 0) {
+events.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+currentMonth = dayjs(events[0].date).startOf('month');
+}
 } catch(e) {
 console.error("スプレッドシートの読み込みに失敗しました。", e);
 }
@@ -395,8 +401,7 @@ while (currentDay.isBefore(endDate) || currentDay.isSame(endDate, 'day')) {
 const isCurrentMonth = currentDay.month() === currentMonth.month();
 const isToday = currentDay.isSame(dayjs(), 'day');
 const dayStr = currentDay.format('YYYY-MM-DD');
-​// 確実に日付を一致させるために文字列で比較
-const dayEvents = activeEvents.filter(e => {
+​const dayEvents = activeEvents.filter(e => {
 const evtDateStr = dayjs(e.date).format('YYYY-MM-DD');
 return evtDateStr === dayStr;
 });
@@ -627,10 +632,10 @@ const todayStr = dayjs().format('YYYY-MM-DD');
 const todayBlock = document.getElementById(dayblock-${todayStr});
 if (todayBlock) {
 todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-showToast('今日の予定に移動しました');
+showToast('今日の予定がある日付に移動しました');
 } else {
 document.getElementById('scheduleMain').scrollTo({ top: 0, behavior: 'smooth' });
-showToast('直近の今日の予定はありません');
+showToast('今日の予定はありません');
 }
 } else {
 currentMonth = dayjs().startOf('month');
