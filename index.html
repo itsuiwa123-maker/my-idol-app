@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oshi-Cal - 推し活スケジュール管理</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Day.js -->
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isToday.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/locale/ja.js"></script>
@@ -14,10 +12,9 @@
         dayjs.extend(window.dayjs_plugin_isToday);
         dayjs.locale('ja');
     </script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-24">
@@ -46,7 +43,7 @@
             </div>
         </div>
 
-        <!-- 検索・フィルターバー -->
+        <!-- フィルターバー -->
         <div class="flex items-center space-x-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
             <div class="relative flex-1">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
@@ -76,28 +73,25 @@
                 </div>
                 <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
             </div>
-            <!-- 選択した日のイベント詳細 -->
             <div id="selected-day-events" class="space-y-3"></div>
         </div>
     </main>
 
-    <!-- フローティング追加ボタン -->
-    <div class="fixed bottom-6 right-6 z-20 flex flex-col items-end space-y-2">
+    <!-- 追加ボタン -->
+    <div class="fixed bottom-6 right-6 z-20">
         <button onclick="openAddModal()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30 flex items-center justify-center text-xl hover:scale-105 transition">
             <i class="fa-solid fa-plus"></i>
         </button>
     </div>
 
-    <!-- サイドメニュー（グループ管理） -->
+    <!-- サイドメニュー -->
     <div id="side-menu" class="fixed inset-0 bg-black/40 z-50 hidden transition-opacity opacity-0" onclick="toggleMenu()">
         <div class="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl p-6 flex flex-col transform translate-x-full transition-transform duration-300" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid id-card fa-user-group mr-2 text-pink-500"></i>推しグループ管理</h3>
+                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-user-group mr-2 text-pink-500"></i>推しグループ管理</h3>
                 <button onclick="toggleMenu()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="group-management-list">
-                <!-- グループリストがここに動的に入ります -->
-            </div>
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="group-management-list"></div>
             <button onclick="openGroupAddModal()" class="mt-4 w-full py-3 bg-pink-50 text-pink-600 font-semibold rounded-2xl hover:bg-pink-100 transition text-sm">
                 <i class="fa-solid fa-plus mr-1"></i> 新しいグループを追加
             </button>
@@ -166,7 +160,6 @@
     </div>
 
     <script>
-        // 【自動更新対応】スプレッドシートのCSV URL
         const AUTO_SYNC_CSV_URL = "https://docs.google.com/spreadsheets/d/1Pl3WUmqOdgE6IHMxNsOiemRu_A-EDk6xmIino4CKaEQ/export?format=csv";
 
         let groups = [
@@ -178,16 +171,11 @@
         let currentMonth = dayjs().startOf('month');
         let selectedDate = dayjs().format('YYYY-MM-DD');
 
-        // 初期化ロード
         function loadUserData() {
             const savedGroups = localStorage.getItem('oshi_cal_groups');
-            if (savedGroups) {
-                try { groups = JSON.parse(savedGroups); } catch(e) {}
-            }
+            if (savedGroups) { try { groups = JSON.parse(savedGroups); } catch(e) {} }
             const savedEvents = localStorage.getItem('oshi_cal_manual_events');
-            if (savedEvents) {
-                try { events = JSON.parse(savedEvents); } catch(e) {}
-            }
+            if (savedEvents) { try { events = JSON.parse(savedEvents); } catch(e) {} }
         }
 
         function saveUserData() {
@@ -195,7 +183,6 @@
             localStorage.setItem('oshi_cal_manual_events', JSON.stringify(events));
         }
 
-        // スプレッドシートから自動取得
         async function fetchSheetData() {
             if (!AUTO_SYNC_CSV_URL) return;
             try {
@@ -217,10 +204,13 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // CSVパース（簡易版）
                 const cols = line.split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
                 if (cols.length >= 4) {
-                    const date = cols[0];
+                    const rawDate = cols[0];
+                    // 日付を確実に YYYY-MM-DD に正規化する（月表示が機能しなかった原因を修正）
+                    const parsedDate = dayjs(rawDate);
+                    const date = parsedDate.isValid() ? parsedDate.format('YYYY-MM-DD') : rawDate;
+
                     const time = cols[1] || "00:00";
                     const groupName = cols[2];
                     const title = cols[3];
@@ -228,7 +218,6 @@
                     const link = cols[5] || "";
 
                     if (date && groupName && title) {
-                        // グループ自動登録
                         let group = groups.find(g => g.name === groupName);
                         if (!group) {
                             groups.push({ name: groupName, color: getRandomColor(), link: link });
@@ -252,9 +241,17 @@
 
             if (newGroupsFound) saveUserData();
             
-            // 手動イベントとシートイベントを統合
             const manualEvents = events.filter(e => !e.isSheet);
             events = [...manualEvents, ...sheetEvents];
+            
+            // スプレッドシートに予定がある場合、カレンダーの初期表示月をその月に合わせる
+            if (sheetEvents.length > 0) {
+                const firstEventDate = dayjs(sheetEvents[0].date);
+                if (firstEventDate.isValid()) {
+                    currentMonth = firstEventDate.startOf('month');
+                    selectedDate = firstEventDate.format('YYYY-MM-DD');
+                }
+            }
             render();
         }
 
@@ -263,12 +260,10 @@
             return colors[Math.floor(Math.random() * colors.length)];
         }
 
-        // 50音順ソート（グループ）
         function sortGroups() {
             groups.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true }));
         }
 
-        // 描画メイン
         function render() {
             sortGroups();
             renderGroupDropdowns();
@@ -350,7 +345,7 @@
                 const groupObj = groups.find(g => g.name === e.group);
                 const color = groupObj ? groupObj.color : '#ec4899';
                 const link = groupObj ? groupObj.link : '';
-                const dateFormatted = dayjs(e.date).format('M月D日(dd)');
+                const dateFormatted = dayjs(e.date).isValid() ? dayjs(e.date).format('M月D日(dd)') : e.date;
                 const isToday = dayjs(e.date).isToday();
 
                 if (e.date !== lastDate) {
@@ -494,7 +489,6 @@
             renderMonthView();
         }
 
-        // モーダル制御
         function toggleMenu() {
             const menu = document.getElementById('side-menu');
             const panel = menu.querySelector('div > div');
@@ -540,7 +534,6 @@
             document.getElementById(id).classList.add('hidden');
         }
 
-        // 保存系
         function saveEvent(e) {
             e.preventDefault();
             const newEvent = {
@@ -569,7 +562,6 @@
             if (editIndex !== "") {
                 const oldName = groups[editIndex].name;
                 groups[editIndex] = { name, color, link };
-                // 既存イベントのグループ名も連動更新
                 events.forEach(ev => {
                     if (ev.group === oldName) ev.group = name;
                 });
@@ -605,7 +597,6 @@
             render();
         }
 
-        // 起動時実行
         window.onload = async () => {
             loadUserData();
             render();
