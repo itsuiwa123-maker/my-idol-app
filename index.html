@@ -1,842 +1,643 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oshi-Cal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/ja.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
-    
-    <script>
-        dayjs.locale('ja');
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"M PLUS Rounded 1c"', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#ff8ebf',
-                        secondary: '#8ebcff',
-                        bg: '#fdfbfb',
-                        card: '#ffffff',
-                    },
-                    boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                        'soft-lg': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background-color: #fdfbfb; color: #475569; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .modal-overlay, .sidebar-overlay {
-            background-color: rgba(71, 85, 105, 0.4);
-            backdrop-filter: blur(4px);
-        }
-        .details-content {
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out;
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-        }
-        .details-content.expanded {
-            max-height: 600px;
-            opacity: 1;
-        }
-        .calendar-day:hover {
-            background-color: #f1f5f9;
-            transform: scale(1.05);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oshi-Cal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/ja.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+​<script>
+dayjs.locale('ja');
+tailwind.config = {
+theme: {
+extend: {
+fontFamily: {
+sans: ['"M PLUS Rounded 1c"', 'sans-serif'],
+},
+colors: {
+primary: '#ff8ebf',
+secondary: '#8ebcff',
+bg: '#fdfbfb',
+card: '#ffffff',
+},
+boxShadow: {
+'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+'soft-lg': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
+}
+}
+}
+}
+</script>
+<style>
+body { background-color: #fdfbfb; color: #475569; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(8px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.modal-overlay, .sidebar-overlay {
+background-color: rgba(71, 85, 105, 0.4);
+backdrop-filter: blur(4px);
+}
+.details-content {
+transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out;
+max-height: 0;
+opacity: 0;
+overflow: hidden;
+}
+.details-content.expanded {
+max-height: 600px;
+opacity: 1;
+}
+.calendar-day:hover {
+background-color: #f1f5f9;
+transform: scale(1.02);
+}
+</style>
 </head>
 <body class="h-screen flex flex-col font-sans overflow-hidden">
-
-    <header class="bg-white/80 backdrop-blur-md shadow-sm z-20 px-5 py-3 flex justify-between items-center shrink-0 border-b border-gray-100">
-        <div class="flex items-center gap-2">
-            <div class="bg-gradient-to-br from-primary to-secondary p-1.5 rounded-xl text-white shadow-sm">
-                <i class="ph-fill ph-calendar-star text-2xl"></i>
-            </div>
-            <h1 class="text-xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent tracking-wide">Oshi-Cal</h1>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="hidden sm:flex bg-gray-100 p-1 rounded-full items-center">
-                <button onclick="setView('list')" id="btnViewList" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
-                <button onclick="setView('calendar')" id="btnViewCalendar" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700">カレンダー</button>
-            </div>
-            <button id="mobileMenuBtn" class="md:hidden bg-gray-50 hover:bg-gray-100 p-2 rounded-full text-gray-600 text-2xl transition-colors">
-                <i class="ph ph-list"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="flex flex-1 overflow-hidden relative">
-        <div id="sidebarOverlay" class="fixed inset-0 sidebar-overlay z-30 hidden opacity-0 transition-opacity duration-300 md:hidden" onclick="toggleMobileSidebar()"></div>
-
-        <aside id="sidebar" class="fixed md:relative w-80 h-full bg-white/95 backdrop-blur-xl border-r border-gray-100 flex flex-col transition-transform duration-300 z-40 transform -translate-x-full md:translate-x-0 shrink-0 shadow-2xl md:shadow-none rounded-r-3xl md:rounded-none">
-            <div class="p-5 border-b border-gray-50 flex justify-between items-center md:hidden">
-                <h2 class="font-bold text-gray-800 text-lg">設定・リンク集</h2>
-                <button id="closeSidebarBtn" class="bg-gray-100 p-2 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
-                    <i class="ph ph-x"></i>
-                </button>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto p-5 hide-scrollbar">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold text-gray-400 text-xs tracking-widest uppercase">フォロー中の推し</h2>
-                    <button onclick="openAddModal()" class="text-primary hover:bg-pink-50 p-1.5 rounded-full transition-colors flex items-center justify-center" title="新しく追加">
-                        <i class="ph-bold ph-plus text-lg"></i>
-                    </button>
-                </div>
-                
-                <div id="groupList" class="flex flex-col gap-2"></div>
-            </div>
-
-            <div class="p-5 bg-gradient-to-t from-gray-50 to-white/0 border-t border-gray-50">
-                <button id="openAddModalBtn" class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-primary hover:bg-pink-50 py-3 rounded-full font-bold transition-all text-sm shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5">
-                    <i class="ph-bold ph-plus text-lg"></i>
-                    推しを新規追加
-                </button>
-            </div>
-        </aside>
-
-        <main class="flex-1 overflow-y-auto bg-bg p-4 md:p-8 relative scroll-smooth" id="scheduleMain">
-            <div class="max-w-4xl mx-auto pb-24">
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-                    <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight" id="viewTitle">スケジュールまとめ</h2>
-                    
-                    <div class="flex items-center gap-2" id="listControls">
-                        <div class="flex items-center gap-2 bg-white pl-4 pr-1 py-1 rounded-full shadow-soft border border-gray-100 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                            <i class="ph-duotone ph-magnifying-glass text-gray-400 text-lg"></i>
-                            <input type="date" id="dateFilter" class="text-sm font-medium text-gray-600 outline-none bg-transparent cursor-pointer py-1" onchange="renderCurrentView()">
-                            <button onclick="document.getElementById('dateFilter').value=''; renderCurrentView()" class="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full w-7 h-7 flex items-center justify-center transition-colors ml-1">
-                                <i class="ph-bold ph-x text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="hidden items-center gap-4 bg-white px-4 py-2 rounded-full shadow-soft border border-gray-100" id="calendarControls">
-                        <button onclick="changeMonth(-1)" class="p-1 text-gray-400 hover:text-primary transition-colors"><i class="ph-bold ph-caret-left text-lg"></i></button>
-                        <span id="calendarMonthDisplay" class="font-bold text-gray-700 min-w-[100px] text-center"></span>
-                        <button onclick="changeMonth(1)" class="p-1 text-gray-400 hover:text-primary transition-colors"><i class="ph-bold ph-caret-right text-lg"></i></button>
-                    </div>
-                </div>
-
-                <div class="sm:hidden flex bg-gray-100 p-1 rounded-full items-center mb-6 max-w-[200px] mx-auto">
-                    <button onclick="setView('list')" id="btnViewListMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
-                    <button onclick="setView('calendar')" id="btnViewCalendarMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500">月表示</button>
-                </div>
-
-                <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-gray-400">
-                    <div class="bg-gray-100 p-6 rounded-full mb-4">
-                        <i class="ph-duotone ph-calendar-blank text-5xl text-gray-300"></i>
-                    </div>
-                    <p class="font-bold text-gray-500">表示する予定がありません</p>
-                    <p class="text-sm mt-2">グループをオンにするか、スプレッドシートを確認してください</p>
-                </div>
-
-                <div id="scheduleTimeline" class="flex flex-col gap-6"></div>
-
-                <div id="calendarView" class="hidden bg-white rounded-3xl shadow-soft border border-gray-100 p-4 sm:p-6">
-                    <div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-400">
-                        <div class="text-red-400">日</div>
-                        <div>月</div><div>火</div><div>水</div><div>木</div><div>金</div>
-                        <div class="text-blue-400">土</div>
-                    </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
-                </div>
-            </div>
-        </main>
-
-        <div class="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex flex-col gap-3 z-30">
-            <button onclick="resetToToday()" class="bg-white text-gray-600 hover:text-primary w-12 h-12 mx-auto rounded-full shadow-soft-lg border border-gray-100 transition-all hover:scale-110 flex items-center justify-center group relative">
-                <i class="ph-bold ph-calendar-check text-xl"></i>
-                <span class="absolute right-full mr-3 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">今日/今月に戻る</span>
-            </button>
-            <button onclick="openAddModal()" class="bg-gradient-to-r from-primary to-secondary text-white w-14 h-14 rounded-full shadow-soft-lg transition-all hover:scale-110 hover:shadow-primary/30 flex items-center justify-center group relative">
-                <i class="ph-bold ph-plus text-2xl"></i>
-                <span class="absolute right-full mr-3 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">推しを追加</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- モーダル (追加・編集兼用) -->
-    <div id="addModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden" id="addModalContent">
-            <div class="p-6 flex justify-between items-center bg-white border-b border-gray-50">
-                <h3 class="font-bold text-xl text-gray-800" id="modalTitle">推しをアプリに追加</h3>
-                <button id="closeModalBtn" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full text-gray-500 transition-colors">
-                    <i class="ph-bold ph-x"></i>
-                </button>
-            </div>
-            
-            <form id="addGroupForm" class="p-6 space-y-6 bg-gray-50/50">
-                <!-- 編集モード判別用の隠しフィールド -->
-                <input type="hidden" id="editingGroupId" value="">
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">グループ・アーティスト名 <span class="text-red-400">*</span></label>
-                    <input type="text" id="groupName" required placeholder="例: Starry Girls" class="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">テーマカラー <span class="text-red-400">*</span></label>
-                    <div class="flex gap-2 sm:gap-3 flex-wrap" id="colorPicker">
-                        <input type="radio" name="color" value="#ff7ba9" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #ff7ba9;" checked>
-                        <input type="radio" name="color" value="#fb923c" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #fb923c;">
-                        <input type="radio" name="color" value="#fbbf24" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #fbbf24;">
-                        <input type="radio" name="color" value="#4ade80" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #4ade80;">
-                        <input type="radio" name="color" value="#60a5fa" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #60a5fa;">
-                        <input type="radio" name="color" value="#c084fc" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #c084fc;">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">公式リンク (Lit.Linkなど)</label>
-                    <p class="text-xs text-gray-500 mb-2">※アプリ内から一発で飛べるポータルになります！</p>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <select id="sourceType" class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-primary/20 shadow-sm w-full sm:w-1/3">
-                            <option value="litlink">Lit.Link</option>
-                            <option value="x">公式X</option>
-                            <option value="other">その他</option>
-                        </select>
-                        <input type="url" id="sourceUrl" placeholder="https://lit.link/..." class="flex-1 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm shadow-sm w-full">
-                    </div>
-                </div>
-
-                <div class="flex gap-3 mt-2">
-                    <button type="submit" id="submitBtnText" class="flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full py-3.5 hover:opacity-90 transition-all shadow-soft-lg hover:-translate-y-1 hover:shadow-primary/30">
-                        追加してポータルを作成
-                    </button>
-                    <!-- 削除ボタン（編集時のみ表示） -->
-                    <button type="button" id="deleteBtn" onclick="deleteCurrentGroup()" class="hidden bg-gray-200 text-gray-600 font-bold rounded-full px-6 hover:bg-red-100 hover:text-red-500 transition-all">
-                        <i class="ph-bold ph-trash"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-6 py-3.5 rounded-full shadow-2xl transition-all duration-300 opacity-0 translate-y-10 z-50 pointer-events-none flex items-center gap-3 w-max max-w-[90vw]">
-        <i class="ph-fill ph-check-circle text-green-400 text-2xl"></i>
-        <span id="toastMessage" class="text-sm font-bold truncate"></span>
-    </div>
-
-    <script>
-        // デフォルトのグループ
-        let defaultGroups = [
-            { id: 'g1', name: 'Starry Girls', color: '#ff7ba9', active: true, source: 'x', url: 'https://twitter.com' },
-            { id: 'g2', name: 'Neon Boys', color: '#60a5fa', active: true, source: 'litlink', url: 'https://lit.link' },
-        ];
-
-        let groups = [];
-        let events = [];
-        let currentView = 'list';
-        let currentMonth = dayjs().startOf('month');
-
-        // 【自動更新対応】ここにGoogleスプレッドシートのURLを貼り付けてください
-        const AUTO_SYNC_CSV_URL = "https://docs.google.com/spreadsheets/d/1Pl3WUmqOdgE6IHMxNsOiemRu_A-EDk6xmIino4CKaEQ/export?format=csv"; 
-
-        // グループを五十音順にソートする関数
-        function sortGroups() {
-            groups.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-        }
-
-        // データのロード
-        function loadUserData() {
-            const savedGroups = localStorage.getItem('oshi_cal_groups');
-            if (savedGroups) {
-                try {
-                    groups = JSON.parse(savedGroups);
-                } catch(e) {
-                    groups = defaultGroups;
-                }
-            } else {
-                groups = defaultGroups;
-            }
-            sortGroups();
-        }
-
-        function saveUserData() {
-            localStorage.setItem('oshi_cal_groups', JSON.stringify(groups));
-        }
-
-        // CSVデータをパースしてイベントにする関数
-        function parseCSVToEvents(csvText) {
-            const lines = csvText.split('\n');
-            const parsedEvents = [];
-            const eventTypes = [
-                { type: 'ライブ', icon: 'ph-microphone-stage' },
-                { type: '配信', icon: 'ph-youtube-logo' },
-                { type: '特典会', icon: 'ph-handshake' },
-                { type: 'イベント', icon: 'ph-calendar-star' }
-            ];
-
-            let isGroupsChanged = false;
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                let cols = line.split(',');
-                if(line.includes('"')) {
-                    cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                }
-                cols = cols.map(c => c ? c.replace(/^["']|["']$/g, '').trim() : '');
-                
-                if (cols.length >= 4) { 
-                    const dateStr = cols[0] || '';
-                    const timeStr = cols[1] || '12:00';
-                    const groupName = cols[2] || '不明';
-                    const eventName = cols[3] || 'イベント';
-                    const location = cols[4] || '';
-                    const ticketUrl = cols[5] || '';
-                    const nyutoku = cols[6] || '';
-                    const regulation = cols[7] || '';
-                    
-                    let group = groups.find(g => g.name === groupName);
-                    let groupId;
-                    if (!group) {
-                        groupId = 'g_auto_' + Math.random().toString(36).substring(2, 7);
-                        const colors = ['#ff7ba9', '#fb923c', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
-                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        
-                        // 自動追加された場合はとりあえずリンクなしで追加
-                        groups.push({ id: groupId, name: groupName, color: randomColor, active: true, source: 'litlink', url: '' });
-                        isGroupsChanged = true;
-                    } else {
-                        groupId = group.id;
-                    }
-
-                    const cleanDate = dateStr.replace(/\//g, '-');
-                    let fullDateTime = dayjs(`${cleanDate} ${timeStr}`);
-                    
-                    if (!fullDateTime.isValid()) continue; 
-
-                    const matchedType = eventTypes.find(t => eventName.includes(t.type)) || eventTypes[0];
-
-                    parsedEvents.push({
-                        id: `evt_csv_${i}_${Date.now()}`,
-                        groupId: groupId,
-                        title: eventName,
-                        date: fullDateTime.toISOString(),
-                        location: location,
-                        icon: matchedType.icon,
-                        ticketUrl: ticketUrl,
-                        nyutoku: nyutoku,
-                        regulation: regulation
-                    });
-                }
-            }
-            if (isGroupsChanged) {
-                sortGroups();
-                saveUserData();
-            }
-            return parsedEvents;
-        }
-
-        async function initializeApp() {
-            loadUserData();
-
-            if (AUTO_SYNC_CSV_URL) {
-                try {
-                    const response = await fetch(AUTO_SYNC_CSV_URL);
-                    const csvText = await response.text();
-                    events = parseCSVToEvents(csvText);
-                } catch(e) {
-                    console.error("スプレッドシートの読み込みに失敗しました。", e);
-                }
-            }
-
-            renderSidebar();
-            renderCurrentView();
-
-            document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileSidebar);
-            document.getElementById('closeSidebarBtn').addEventListener('click', toggleMobileSidebar);
-            document.getElementById('openAddModalBtn').addEventListener('click', openAddModal);
-            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-            document.getElementById('addModal').addEventListener('click', (e) => {
-                if (e.target.id === 'addModal') closeModal();
-            });
-            document.getElementById('addGroupForm').addEventListener('submit', handleSaveGroup);
-        }
-
-        document.addEventListener('DOMContentLoaded', initializeApp);
-
-        function renderSidebar() {
-            const container = document.getElementById('groupList');
-            container.innerHTML = '';
-
-            groups.forEach(group => {
-                const item = document.createElement('div');
-                item.className = `flex items-center justify-between p-2 sm:p-3 rounded-2xl transition-all border ${group.active ? 'bg-white shadow-sm border-gray-100' : 'bg-transparent border-transparent hover:bg-gray-50'}`;
-                
-                const sourceIconMap = { 'x': 'ph-twitter-logo', 'litlink': 'ph-link', 'other': 'ph-globe' };
-                const sourceIcon = sourceIconMap[group.source] || 'ph-link';
-
-                // Lit.Linkへ飛ぶボタン
-                const portalLinkHtml = group.url ? `
-                    <a href="${group.url}" target="_blank" class="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-500 flex items-center justify-center transition-colors ml-auto mr-1 border border-blue-100 shadow-sm" title="Lit.Linkを開く" onclick="event.stopPropagation()">
-                        <i class="ph-bold ph-arrow-square-out text-sm"></i>
-                    </a>
-                ` : `<div class="ml-auto mr-1 w-8"></div>`;
-
-                // 編集ボタン
-                const editBtnHtml = `
-                    <button onclick="openEditModal('${group.id}'); event.stopPropagation();" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-colors mr-2 shadow-sm" title="グループ情報を編集">
-                        <i class="ph-bold ph-pencil-simple text-sm"></i>
-                    </button>
-                `;
-
-                item.innerHTML = `
-                    <div class="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden pr-2" onclick="toggleGroupActive('${group.id}')">
-                        <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center shadow-sm text-white font-bold text-lg" style="background-color: ${group.color}">
-                            ${group.name.charAt(0)}
-                        </div>
-                        <div class="flex flex-col min-w-0">
-                            <span class="text-sm font-bold text-gray-800 leading-tight truncate">${group.name}</span>
-                            <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 font-medium">
-                                <i class="ph-fill ${sourceIcon}"></i> ${group.url ? '連携済' : '未連携'}
-                            </div>
-                        </div>
-                    </div>
-                    ${portalLinkHtml}
-                    ${editBtnHtml}
-                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input type="checkbox" class="sr-only peer" ${group.active ? 'checked' : ''} onchange="toggleGroupActive('${group.id}')">
-                        <div class="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-400"></div>
-                    </label>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        // --- 省略せずに他の関数もそのまま記述 ---
-        function setView(view) {
-            currentView = view;
-            const btnList = document.getElementById('btnViewList');
-            const btnCal = document.getElementById('btnViewCalendar');
-            const btnListM = document.getElementById('btnViewListMobile');
-            const btnCalM = document.getElementById('btnViewCalendarMobile');
-
-            if(view === 'list') {
-                btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
-                btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
-                btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
-                btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
-            } else {
-                btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
-                btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
-                btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
-                btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
-            }
-            renderCurrentView();
-        }
-
-        function renderCurrentView() {
-            if (currentView === 'list') {
-                document.getElementById('scheduleTimeline').classList.remove('hidden');
-                document.getElementById('calendarView').classList.add('hidden');
-                document.getElementById('listControls').classList.remove('hidden');
-                document.getElementById('calendarControls').classList.remove('flex');
-                document.getElementById('calendarControls').classList.add('hidden');
-                renderList();
-            } else {
-                document.getElementById('scheduleTimeline').classList.add('hidden');
-                document.getElementById('calendarView').classList.remove('hidden');
-                document.getElementById('listControls').classList.add('hidden');
-                document.getElementById('calendarControls').classList.remove('hidden');
-                document.getElementById('calendarControls').classList.add('flex');
-                renderCalendar();
-            }
-        }
-
-        function getActiveEvents() {
-            const activeGroupIds = groups.filter(g => g.active).map(g => g.id);
-            return events.filter(e => activeGroupIds.includes(e.groupId));
-        }
-
-        function changeMonth(delta) {
-            currentMonth = currentMonth.add(delta, 'month');
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const monthDisplay = document.getElementById('calendarMonthDisplay');
-            grid.innerHTML = '';
-            monthDisplay.innerText = currentMonth.format('YYYY年 M月');
-            
-            const activeEvents = getActiveEvents();
-            const startOfMonth = currentMonth.startOf('month');
-            const endOfMonth = currentMonth.endOf('month');
-            const startDate = startOfMonth.startOf('week');
-            const endDate = endOfMonth.endOf('week');
-            
-            let currentDay = startDate;
-            while (currentDay.isBefore(endDate) || currentDay.isSame(endDate, 'day')) {
-                const isCurrentMonth = currentDay.month() === currentMonth.month();
-                const isToday = currentDay.isSame(dayjs(), 'day');
-                const dayStr = currentDay.format('YYYY-MM-DD');
-                const dayEvents = activeEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === dayStr);
-                
-                const cell = document.createElement('div');
-                cell.className = `calendar-day min-h-[80px] sm:min-h-[100px] border border-gray-100 rounded-2xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col ${isCurrentMonth ? 'bg-white' : 'bg-gray-50/50 opacity-60'} ${isToday ? 'ring-2 ring-primary/30 bg-pink-50/30' : ''}`;
-                cell.onclick = () => {
-                    document.getElementById('dateFilter').value = dayStr;
-                    setView('list');
-                };
-
-                let dayContent = `
-                    <div class="text-right mb-1">
-                        <span class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full text-xs font-bold ${isToday ? 'bg-primary text-white' : (currentDay.day()===0 ? 'text-red-400' : currentDay.day()===6 ? 'text-blue-400' : 'text-gray-600')}">
-                            ${currentDay.date()}
-                        </span>
-                    </div>
-                    <div class="flex flex-col gap-1 overflow-hidden flex-1">
-                `;
-
-                dayEvents.slice(0, 3).forEach(evt => {
-                    const group = groups.find(g => g.id === evt.groupId);
-                    dayContent += `
-                        <div class="text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded-full font-bold text-white shadow-sm" style="background-color: ${group ? group.color : '#ff7ba9'}">
-                            ${dayjs(evt.date).format('HH:mm')} ${group ? group.name.substring(0,3) : '推し'}
-                        </div>
-                    `;
-                });
-                if(dayEvents.length > 3) {
-                    dayContent += `<div class="text-[10px] text-gray-400 text-center font-bold">+${dayEvents.length - 3}</div>`;
-                }
-                dayContent += `</div>`;
-                cell.innerHTML = dayContent;
-                grid.appendChild(cell);
-                currentDay = currentDay.add(1, 'day');
-            }
-        }
-
-        function renderList() {
-            const container = document.getElementById('scheduleTimeline');
-            const emptyState = document.getElementById('emptyState');
-            container.innerHTML = '';
-
-            let activeEvents = getActiveEvents();
-            const filterDate = document.getElementById('dateFilter').value;
-            if (filterDate) {
-                activeEvents = activeEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === filterDate);
-            }
-
-            if (activeEvents.length === 0) {
-                container.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                emptyState.classList.add('flex');
-                if (filterDate) emptyState.querySelector('p').innerText = '選択した日付の予定はありません';
-                else emptyState.querySelector('p').innerText = 'グループをオンにするか、スプレッドシートを確認してください';
-                return;
-            }
-
-            container.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            emptyState.classList.remove('flex');
-            activeEvents.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-
-            const groupedEvents = {};
-            activeEvents.forEach(evt => {
-                const dayStr = dayjs(evt.date).format('YYYY-MM-DD');
-                if (!groupedEvents[dayStr]) groupedEvents[dayStr] = [];
-                groupedEvents[dayStr].push(evt);
-            });
-
-            Object.keys(groupedEvents).sort().forEach(dayStr => {
-                const dayEvents = groupedEvents[dayStr];
-                const dDate = dayjs(dayStr);
-                const isToday = dDate.isSame(dayjs(), 'day');
-                const dayDisplay = dDate.format('M月D日 (ddd)');
-                
-                const dayBlock = document.createElement('div');
-                dayBlock.className = 'fade-in relative';
-                dayBlock.id = `dayblock-${dayStr}`;
-
-                let headerHtml = `
-                    <div class="sticky top-0 z-10 bg-[#fdfbfb]/90 backdrop-blur-md py-3 mb-4 flex items-center gap-3">
-                        <h3 class="text-xl font-extrabold ${isToday ? 'text-primary' : 'text-gray-800'}">${dayDisplay}</h3>
-                        ${isToday ? '<span class="bg-primary text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm">今日</span>' : ''}
-                    </div>
-                `;
-                
-                let eventsHtml = `<div class="flex flex-col gap-4">`;
-                dayEvents.forEach(evt => {
-                    const group = groups.find(g => g.id === evt.groupId) || { name: 'その他', color: '#ff7ba9', url: '#' };
-                    const timeStr = dayjs(evt.date).format('HH:mm');
-                    const mapUrl = evt.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evt.location)}` : '#';
-                    
-                    const portalBtn = group.url ? `
-                        <a href="${group.url}" target="_blank" class="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-                            <i class="ph-bold ph-link text-lg"></i> ${group.name} の公式リンクへ
-                        </a>
-                    ` : '';
-
-                    eventsHtml += `
-                        <div class="group bg-white rounded-[24px] shadow-soft hover:shadow-soft-lg transition-all relative overflow-hidden border border-gray-50/50">
-                            <div class="absolute left-0 top-0 bottom-0 w-2" style="background-color: ${group.color}"></div>
-                            <div class="p-5 cursor-pointer flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 pl-6" onclick="toggleDetails('${evt.id}')">
-                                <div class="text-xl font-extrabold text-gray-700 w-16 shrink-0 tracking-tight">${timeStr}</div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-xs font-bold px-3 py-1 rounded-full border" style="background-color: ${group.color}10; color: ${group.color}; border-color: ${group.color}30">${group.name}</span>
-                                        <div class="bg-gray-50 p-1.5 rounded-full group-hover:bg-gray-100 transition-colors">
-                                            <i id="chevron-${evt.id}" class="ph-bold ph-caret-down text-gray-400 transition-transform duration-300"></i>
-                                        </div>
-                                    </div>
-                                    <div class="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors flex items-center gap-2">
-                                        ${evt.title}
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-start sm:items-end gap-2 mt-2 sm:mt-0">
-                                    ${evt.location ? `
-                                    <a href="${mapUrl}" target="_blank" onclick="event.stopPropagation()" class="text-gray-500 bg-gray-50 hover:bg-blue-50 hover:text-blue-600 border border-gray-100 hover:border-blue-200 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold w-full sm:w-auto transition-all shadow-sm">
-                                        <i class="ph-fill ph-map-pin text-base"></i> ${evt.location}
-                                    </a>
-                                    ` : ''}
-                                </div>
-                            </div>
-
-                            <div id="details-${evt.id}" class="details-content bg-slate-50/50 border-t border-gray-100">
-                                <div class="p-5 sm:px-6 text-sm space-y-5">
-                                    ${evt.ticketUrl ? `
-                                    <div class="flex items-start gap-4">
-                                        <div class="bg-blue-100 text-blue-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-ticket text-lg"></i></div>
-                                        <div>
-                                            <span class="font-bold text-gray-500 block text-xs mb-1">チケット情報</span>
-                                            <a href="${evt.ticketUrl}" target="_blank" class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-bold flex items-center gap-1">販売サイトを開く <i class="ph-bold ph-arrow-up-right text-xs"></i></a>
-                                        </div>
-                                    </div>` : ''}
-                                    
-                                    ${evt.nyutoku ? `
-                                    <div class="flex items-start gap-4">
-                                        <div class="bg-rose-100 text-rose-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-gift text-lg"></i></div>
-                                        <div>
-                                            <span class="font-bold text-gray-500 block text-xs mb-1">入場特典 (入特)</span>
-                                            <span class="text-gray-800 font-bold">${evt.nyutoku}</span>
-                                        </div>
-                                    </div>` : ''}
-                                    
-                                    ${evt.regulation ? `
-                                    <div class="flex items-start gap-4">
-                                        <div class="bg-amber-100 text-amber-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-camera text-lg"></i></div>
-                                        <div>
-                                            <span class="font-bold text-gray-500 block text-xs mb-1">イベント詳細・レギュレーション</span>
-                                            <span class="text-gray-800 font-medium whitespace-pre-line leading-relaxed block bg-white p-3 rounded-xl border border-gray-100 mt-1 shadow-sm">${evt.regulation}</span>
-                                        </div>
-                                    </div>` : ''}
-
-                                    ${portalBtn}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                eventsHtml += `</div>`;
-                dayBlock.innerHTML = headerHtml + eventsHtml;
-                container.appendChild(dayBlock);
-            });
-        }
-
-        window.toggleDetails = function(eventId) {
-            const detailsElement = document.getElementById(`details-${eventId}`);
-            const chevron = document.getElementById(`chevron-${eventId}`);
-            if (detailsElement.classList.contains('expanded')) {
-                detailsElement.classList.remove('expanded');
-                chevron.classList.remove('rotate-180');
-            } else {
-                detailsElement.classList.add('expanded');
-                chevron.classList.add('rotate-180');
-            }
-        };
-
-        window.toggleGroupActive = function(groupId) {
-            const group = groups.find(g => g.id === groupId);
-            if (group) {
-                group.active = !group.active;
-                saveUserData(); 
-                renderSidebar();
-                renderCurrentView();
-            }
-        };
-
-        function toggleMobileSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('opacity-0');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        }
-
-        // ====== 新規追加と編集のモーダル制御 ======
-        
-        // 追加モードで開く
-        function openAddModal() {
-            document.getElementById('addGroupForm').reset();
-            document.getElementById('editingGroupId').value = '';
-            document.getElementById('modalTitle').innerText = '推しをアプリに追加';
-            document.getElementById('submitBtnText').innerText = '追加してポータルを作成';
-            document.getElementById('deleteBtn').classList.add('hidden');
-            
-            showModalBase();
-        }
-
-        // 編集モードで開く
-        window.openEditModal = function(groupId) {
-            const group = groups.find(g => g.id === groupId);
-            if (!group) return;
-            
-            document.getElementById('editingGroupId').value = group.id;
-            document.getElementById('groupName').value = group.name;
-            document.getElementById('sourceType').value = group.source;
-            document.getElementById('sourceUrl').value = group.url || '';
-            
-            // カラーを選択
-            const colorRadio = document.querySelector(`input[name="color"][value="${group.color}"]`);
-            if (colorRadio) colorRadio.checked = true;
-            
-            document.getElementById('modalTitle').innerText = '推しの情報を編集';
-            document.getElementById('submitBtnText').innerText = '変更を保存する';
-            document.getElementById('deleteBtn').classList.remove('hidden');
-            
-            showModalBase();
-        };
-
-        // モーダルのアニメーション表示
-        function showModalBase() {
-            const modal = document.getElementById('addModal');
-            const content = document.getElementById('addModalContent');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                content.classList.remove('scale-95');
-            }, 10);
-            if (!document.getElementById('sidebar').classList.contains('-translate-x-full')) {
-                toggleMobileSidebar();
-            }
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('addModal');
-            const content = document.getElementById('addModalContent');
-            modal.classList.add('opacity-0');
-            content.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.getElementById('addGroupForm').reset();
-            }, 300);
-        }
-
-        // フォーム送信（追加・更新）
-        function handleSaveGroup(e) {
-            e.preventDefault();
-            const editingId = document.getElementById('editingGroupId').value;
-            const name = document.getElementById('groupName').value;
-            const sourceType = document.getElementById('sourceType').value;
-            const sourceUrl = document.getElementById('sourceUrl').value;
-            const color = document.querySelector('input[name="color"]:checked').value;
-            
-            if (editingId) {
-                // 既存のグループを更新
-                const groupIndex = groups.findIndex(g => g.id === editingId);
-                if(groupIndex !== -1) {
-                    groups[groupIndex].name = name;
-                    groups[groupIndex].color = color;
-                    groups[groupIndex].source = sourceType;
-                    groups[groupIndex].url = sourceUrl;
-                    showToast(`${name}の情報を更新しました！`);
-                }
-            } else {
-                // 新規グループを追加
-                const newGroup = {
-                    id: 'g' + Date.now(),
-                    name: name,
-                    color: color,
-                    active: true,
-                    source: sourceType,
-                    url: sourceUrl
-                };
-                groups.push(newGroup);
-                showToast(`${name}をポータルに追加しました！`);
-            }
-
-            sortGroups();
-            saveUserData(); 
-            closeModal();
-            renderSidebar();
-            renderCurrentView();
-        }
-
-        // グループを削除する関数
-        window.deleteCurrentGroup = function() {
-            const editingId = document.getElementById('editingGroupId').value;
-            const groupIndex = groups.findIndex(g => g.id === editingId);
-            
-            if (groupIndex !== -1) {
-                const confirmDelete = confirm(`${groups[groupIndex].name} をリストから削除してもよろしいですか？`);
-                if (confirmDelete) {
-                    const name = groups[groupIndex].name;
-                    groups.splice(groupIndex, 1);
-                    sortGroups();
-                    saveUserData();
-                    closeModal();
-                    renderSidebar();
-                    renderCurrentView();
-                    showToast(`${name}を削除しました`);
-                }
-            }
-        };
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = message;
-            toast.classList.remove('translate-y-10', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-            }, 3000);
-        }
-
-        window.resetToToday = function() {
-            if (currentView === 'list') {
-                document.getElementById('dateFilter').value = '';
-                renderCurrentView();
-                const todayStr = dayjs().format('YYYY-MM-DD');
-                const todayBlock = document.getElementById(`dayblock-${todayStr}`);
-                if (todayBlock) {
-                    todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    showToast('今日の予定に移動しました');
-                } else {
-                    document.getElementById('scheduleMain').scrollTo({ top: 0, behavior: 'smooth' });
-                    showToast('直近の今日の予定はありません');
-                }
-            } else {
-                currentMonth = dayjs().startOf('month');
-                renderCalendar();
-                showToast('今月に戻りました');
-            }
-        };
-    </script>
+​<header class="bg-white/85 backdrop-blur-md shadow-sm z-20 px-5 py-3 flex justify-between items-center shrink-0 border-b border-gray-100">
+<div class="flex items-center gap-2">
+<div class="bg-gradient-to-br from-primary to-secondary p-1.5 rounded-xl text-white shadow-sm">
+<i class="ph-fill ph-calendar-star text-2xl"></i>
+</div>
+<h1 class="text-xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent tracking-wide">Oshi-Cal</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden sm:flex bg-gray-100 p-1 rounded-full items-center">
+<button onclick="setView('list')" id="btnViewList" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
+<button onclick="setView('calendar')" id="btnViewCalendar" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700">月表示</button>
+</div>
+<button id="mobileMenuBtn" class="md:hidden bg-gray-50 hover:bg-gray-100 p-2 rounded-full text-gray-600 text-2xl transition-colors">
+<i class="ph ph-list"></i>
+</button>
+</div>
+</header>
+​<div class="flex flex-1 overflow-hidden relative">
+<div id="sidebarOverlay" class="fixed inset-0 sidebar-overlay z-30 hidden opacity-0 transition-opacity duration-300 md:hidden" onclick="toggleMobileSidebar()"></div>
+​<aside id="sidebar" class="fixed md:relative w-80 h-full bg-white/95 backdrop-blur-xl border-r border-gray-100 flex flex-col transition-transform duration-300 z-40 transform -translate-x-full md:translate-x-0 shrink-0 shadow-2xl md:shadow-none rounded-r-3xl md:rounded-none">
+<div class="p-5 border-b border-gray-50 flex justify-between items-center md:hidden">
+<h2 class="font-bold text-gray-800 text-lg">設定・推し一覧</h2>
+<button id="closeSidebarBtn" class="bg-gray-100 p-2 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
+<i class="ph ph-x"></i>
+</button>
+</div>
+​<div class="flex-1 overflow-y-auto p-5 hide-scrollbar">
+<div class="flex justify-between items-center mb-4">
+<h2 class="font-bold text-gray-400 text-xs tracking-widest uppercase">フォロー中の推し (50音順)</h2>
+<button onclick="openAddModal()" class="text-primary hover:bg-pink-50 p-1.5 rounded-full transition-colors flex items-center justify-center" title="新しく追加">
+<i class="ph-bold ph-plus text-lg"></i>
+</button>
+</div>
+​<div id="groupList" class="flex flex-col gap-2"></div>
+</div>
+​<div class="p-5 bg-gradient-to-t from-gray-50 to-white/0 border-t border-gray-50">
+<button id="openAddModalBtn" class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-primary hover:bg-pink-50 py-3 rounded-full font-bold transition-all text-sm shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5">
+<i class="ph-bold ph-plus text-lg"></i>
+推しを新規追加
+</button>
+</div>
+</aside>
+​<main class="flex-1 overflow-y-auto bg-bg p-4 md:p-8 relative scroll-smooth" id="scheduleMain">
+<div class="max-w-4xl mx-auto pb-24">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+<h2 class="text-2xl font-extrabold text-gray-800 tracking-tight" id="viewTitle">スケジュールまとめ</h2>
+​<div class="flex items-center gap-2" id="listControls">
+<div class="flex items-center gap-2 bg-white pl-4 pr-1 py-1 rounded-full shadow-soft border border-gray-100 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<i class="ph-duotone ph-magnifying-glass text-gray-400 text-lg"></i>
+<input type="date" id="dateFilter" class="text-sm font-medium text-gray-600 outline-none bg-transparent cursor-pointer py-1" onchange="renderCurrentView()">
+<button onclick="document.getElementById('dateFilter').value=''; renderCurrentView()" class="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full w-7 h-7 flex items-center justify-center transition-colors ml-1">
+<i class="ph-bold ph-x text-xs"></i>
+</button>
+</div>
+</div>
+​<div class="hidden items-center gap-4 bg-white px-4 py-2 rounded-full shadow-soft border border-gray-100" id="calendarControls">
+<button onclick="changeMonth(-1)" class="p-1 text-gray-400 hover:text-primary transition-colors"><i class="ph-bold ph-caret-left text-lg"></i></button>
+<span id="calendarMonthDisplay" class="font-bold text-gray-700 min-w-[100px] text-center"></span>
+<button onclick="changeMonth(1)" class="p-1 text-gray-400 hover:text-primary transition-colors"><i class="ph-bold ph-caret-right text-lg"></i></button>
+</div>
+</div>
+​<div class="sm:hidden flex bg-gray-100 p-1 rounded-full items-center mb-6 max-w-[200px] mx-auto">
+<button onclick="setView('list')" id="btnViewListMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700">リスト</button>
+<button onclick="setView('calendar')" id="btnViewCalendarMobile" class="flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500">月表示</button>
+</div>
+​<div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-gray-400">
+<div class="bg-gray-100 p-6 rounded-full mb-4">
+<i class="ph-duotone ph-calendar-blank text-5xl text-gray-300"></i>
+</div>
+<p class="font-bold text-gray-500">表示する予定がありません</p>
+<p class="text-sm mt-2">グループをオンにするか、スプレッドシートを確認してください</p>
+</div>
+​<div id="scheduleTimeline" class="flex flex-col gap-6"></div>
+​<div id="calendarView" class="hidden bg-white rounded-3xl shadow-soft border border-gray-100 p-4 sm:p-6">
+<div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-400">
+<div class="text-red-400">日</div>
+<div>月</div><div>火</div><div>水</div><div>木</div><div>金</div>
+<div class="text-blue-400">土</div>
+</div>
+<div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
+</div>
+</div>
+</main>
+​<div class="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex flex-col gap-3 z-30">
+<button onclick="resetToToday()" class="bg-white text-gray-600 hover:text-primary w-12 h-12 mx-auto rounded-full shadow-soft-lg border border-gray-100 transition-all hover:scale-110 flex items-center justify-center group relative">
+<i class="ph-bold ph-calendar-check text-xl"></i>
+<span class="absolute right-full mr-3 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">今日/今月に戻る</span>
+</button>
+<button onclick="openAddModal()" class="bg-gradient-to-r from-primary to-secondary text-white w-14 h-14 rounded-full shadow-soft-lg transition-all hover:scale-110 hover:shadow-primary/30 flex items-center justify-center group relative">
+<i class="ph-bold ph-plus text-2xl"></i>
+<span class="absolute right-full mr-3 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none hidden md:block">推しを追加</span>
+</button>
+</div>
+</div>
+​<!-- モーダル (追加・編集兼用) -->
+<div id="addModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
+<div class="bg-white rounded-3xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 overflow-hidden" id="addModalContent">
+<div class="p-6 flex justify-between items-center bg-white border-b border-gray-50">
+<h3 class="font-bold text-xl text-gray-800" id="modalTitle">推しをアプリに追加</h3>
+<button id="closeModalBtn" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full text-gray-500 transition-colors">
+<i class="ph-bold ph-x"></i>
+</button>
+</div>
+​<form id="addGroupForm" class="p-6 space-y-6 bg-gray-50/50">
+<input type="hidden" id="editingGroupId" value="">
+​<div>
+<label class="block text-sm font-bold text-gray-700 mb-2">グループ・アーティスト名 <span class="text-red-400">*</span></label>
+<input type="text" id="groupName" required placeholder="例: Starry Girls" class="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm">
+</div>
+​<div>
+<label class="block text-sm font-bold text-gray-700 mb-2">テーマカラー <span class="text-red-400">*</span></label>
+<div class="flex gap-2 sm:gap-3 flex-wrap" id="colorPicker">
+<input type="radio" name="color" value="#ff7ba9" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #ff7ba9;" checked>
+<input type="radio" name="color" value="#fb923c" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #fb923c;">
+<input type="radio" name="color" value="#fbbf24" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #fbbf24;">
+<input type="radio" name="color" value="#4ade80" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #4ade80;">
+<input type="radio" name="color" value="#60a5fa" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #60a5fa;">
+<input type="radio" name="color" value="#c084fc" class="w-10 h-10 rounded-full appearance-none cursor-pointer border-4 border-transparent checked:border-gray-800 transition-all hover:scale-110 shadow-sm" style="background-color: #c084fc;">
+</div>
+</div>
+​<div>
+<label class="block text-sm font-bold text-gray-700 mb-2">公式リンク (Lit.Linkなど)</label>
+<p class="text-xs text-gray-500 mb-2">※アプリ内から一発で飛べるポータルになります！</p>
+<div class="flex flex-col sm:flex-row gap-2">
+<select id="sourceType" class="bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-primary/20 shadow-sm w-full sm:w-1/3">
+<option value="litlink">Lit.Link</option>
+<option value="x">公式X</option>
+<option value="other">その他</option>
+</select>
+<input type="url" id="sourceUrl" placeholder="https://lit.link/..." class="flex-1 border border-gray-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm shadow-sm w-full">
+</div>
+</div>
+​<div class="flex gap-3 mt-2">
+<button type="submit" id="submitBtnText" class="flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full py-3.5 hover:opacity-90 transition-all shadow-soft-lg hover:-translate-y-1 hover:shadow-primary/30">
+追加してポータルを作成
+</button>
+<button type="button" id="deleteBtn" onclick="deleteCurrentGroup()" class="hidden bg-gray-200 text-gray-600 font-bold rounded-full px-6 hover:bg-red-100 hover:text-red-500 transition-all">
+<i class="ph-bold ph-trash"></i>
+</button>
+</div>
+</form>
+</div>
+</div>
+​<div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-6 py-3.5 rounded-full shadow-2xl transition-all duration-300 opacity-0 translate-y-10 z-50 pointer-events-none flex items-center gap-3 w-max max-w-[90vw]">
+<i class="ph-fill ph-check-circle text-green-400 text-2xl"></i>
+<span id="toastMessage" class="text-sm font-bold truncate"></span>
+</div>
+​<script>
+let defaultGroups = [
+{ id: 'g1', name: 'Starry Girls', color: '#ff7ba9', active: true, source: 'x', url: 'https://twitter.com' },
+{ id: 'g2', name: 'Neon Boys', color: '#60a5fa', active: true, source: 'litlink', url: 'https://lit.link' },
+];
+​let groups = [];
+let events = [];
+let currentView = 'list';
+let currentMonth = dayjs().startOf('month');
+​const AUTO_SYNC_CSV_URL = "https://docs.google.com/spreadsheets/d/1Pl3WUmqOdgE6IHMxNsOiemRu_A-EDk6xmIino4CKaEQ/export?format=csv";
+​function sortGroups() {
+groups.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+}
+​function loadUserData() {
+const savedGroups = localStorage.getItem('oshi_cal_groups');
+if (savedGroups) {
+try {
+groups = JSON.parse(savedGroups);
+} catch(e) {
+groups = defaultGroups;
+}
+} else {
+groups = defaultGroups;
+}
+sortGroups();
+}
+​function saveUserData() {
+localStorage.setItem('oshi_cal_groups', JSON.stringify(groups));
+}
+​function parseCSVToEvents(csvText) {
+const lines = csvText.split('\n');
+const parsedEvents = [];
+const eventTypes = [
+{ type: 'ライブ', icon: 'ph-microphone-stage' },
+{ type: '配信', icon: 'ph-youtube-logo' },
+{ type: '特典会', icon: 'ph-handshake' },
+{ type: 'イベント', icon: 'ph-calendar-star' }
+];
+​let isGroupsChanged = false;
+​for (let i = 1; i < lines.length; i++) {
+const line = lines[i].trim();
+if (!line) continue;
+​let cols = line.split(',');
+if(line.includes('"')) {
+cols = line.match(/(".?"|[^",\s]+)(?=\s,|\s*)/g) || [];
+}
+cols = cols.map(c => c ? c.replace(/^["']|["']/g, '').trim() : '');
+​if (cols.length >= 4) {
+const dateStr = cols[0] || '';
+const timeStr = cols[1] || '12:00';
+const groupName = cols[2] || '不明';
+const eventName = cols[3] || 'イベント';
+const location = cols[4] || '';
+const ticketUrl = cols[5] || '';
+const nyutoku = cols[6] || '';
+const regulation = cols[7] || '';
+​let group = groups.find(g => g.name === groupName);
+let groupId;
+if (!group) {
+groupId = 'g_auto_' + Math.random().toString(36).substring(2, 7);
+const colors = ['#ff7ba9', '#fb923c', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
+const randomColor = colors[Math.floor(Math.random() * colors.length)];
+​groups.push({ id: groupId, name: groupName, color: randomColor, active: true, source: 'litlink', url: '' });
+isGroupsChanged = true;
+} else {
+groupId = group.id;
+}
+​const cleanDate = dateStr.replace(///g, '-');
+const cleanTime = (timeStr && timeStr.includes(':')) ? timeStr : '00:00';
+let fullDateTime = dayjs(${cleanDate} ${cleanTime});
+​if (!fullDateTime.isValid()) continue;
+​const matchedType = eventTypes.find(t => eventName.includes(t.type)) || eventTypes[0];
+​parsedEvents.push({
+id: evt_csv_${i}_${Date.now()},
+groupId: groupId,
+title: eventName,
+date: fullDateTime.format('YYYY-MM-DDTHH:mm:ss'),
+location: location,
+icon: matchedType.icon,
+ticketUrl: ticketUrl,
+nyutoku: nyutoku,
+regulation: regulation
+});
+}
+}
+if (isGroupsChanged) {
+sortGroups();
+saveUserData();
+}
+return parsedEvents;
+}
+​async function initializeApp() {
+loadUserData();
+​if (AUTO_SYNC_CSV_URL) {
+try {
+const response = await fetch(AUTO_SYNC_CSV_URL);
+const csvText = await response.text();
+events = parseCSVToEvents(csvText);
+} catch(e) {
+console.error("スプレッドシートの読み込みに失敗しました。", e);
+}
+}
+​renderSidebar();
+renderCurrentView();
+​document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileSidebar);
+document.getElementById('closeSidebarBtn').addEventListener('click', toggleMobileSidebar);
+document.getElementById('openAddModalBtn').addEventListener('click', openAddModal);
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+document.getElementById('addModal').addEventListener('click', (e) => {
+if (e.target.id === 'addModal') closeModal();
+});
+document.getElementById('addGroupForm').addEventListener('submit', handleSaveGroup);
+}
+​document.addEventListener('DOMContentLoaded', initializeApp);
+​function renderSidebar() {
+const container = document.getElementById('groupList');
+container.innerHTML = '';
+​groups.forEach(group => {
+const item = document.createElement('div');
+item.className = flex items-center justify-between p-2 sm:p-3 rounded-2xl transition-all border ${group.active ? 'bg-white shadow-sm border-gray-100' : 'bg-transparent border-transparent hover:bg-gray-50'};
+​const sourceIconMap = { 'x': 'ph-twitter-logo', 'litlink': 'ph-link', 'other': 'ph-globe' };
+const sourceIcon = sourceIconMap[group.source] || 'ph-link';
+​const portalLinkHtml = group.url ? <a href="${group.url}" target="_blank" class="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-500 flex items-center justify-center transition-colors ml-auto mr-1 border border-blue-100 shadow-sm" title="Lit.Linkを開く" onclick="event.stopPropagation()"> <i class="ph-bold ph-arrow-square-out text-sm"></i> </a> : <div class="ml-auto mr-1 w-8"></div>;
+​const editBtnHtml = <button onclick="openEditModal('${group.id}'); event.stopPropagation();" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-colors mr-2 shadow-sm" title="グループ情報を編集"> <i class="ph-bold ph-pencil-simple text-sm"></i> </button>;
+​item.innerHTML = <div class="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden pr-2" onclick="toggleGroupActive('${group.id}')"> <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center shadow-sm text-white font-bold text-lg" style="background-color: ${group.color}"> ${group.name.charAt(0)} </div> <div class="flex flex-col min-w-0"> <span class="text-sm font-bold text-gray-800 leading-tight truncate">${group.name}</span> <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 font-medium"> <i class="ph-fill ${sourceIcon}"></i> ${group.url ? '連携済' : '未連携'} </div> </div> </div> ${portalLinkHtml} ${editBtnHtml} <label class="relative inline-flex items-center cursor-pointer shrink-0"> <input type="checkbox" class="sr-only peer" ${group.active ? 'checked' : ''} onchange="toggleGroupActive('${group.id}')"> <div class="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-400"></div> </label>;
+container.appendChild(item);
+});
+}
+​function setView(view) {
+currentView = view;
+const btnList = document.getElementById('btnViewList');
+const btnCal = document.getElementById('btnViewCalendar');
+const btnListM = document.getElementById('btnViewListMobile');
+const btnCalM = document.getElementById('btnViewCalendarMobile');
+​if(view === 'list') {
+btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
+btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
+btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
+btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
+} else {
+btnCal.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
+btnList.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all text-gray-500 hover:text-gray-700";
+btnCalM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all bg-white shadow-sm text-gray-700";
+btnListM.className = "flex-1 py-2 rounded-full text-sm font-bold transition-all text-gray-500";
+}
+renderCurrentView();
+}
+​function renderCurrentView() {
+if (currentView === 'list') {
+document.getElementById('scheduleTimeline').classList.remove('hidden');
+document.getElementById('calendarView').classList.add('hidden');
+document.getElementById('listControls').classList.remove('hidden');
+document.getElementById('calendarControls').classList.remove('flex');
+document.getElementById('calendarControls').classList.add('hidden');
+renderList();
+} else {
+document.getElementById('scheduleTimeline').classList.add('hidden');
+document.getElementById('calendarView').classList.remove('hidden');
+document.getElementById('listControls').classList.add('hidden');
+document.getElementById('calendarControls').classList.remove('hidden');
+document.getElementById('calendarControls').classList.add('flex');
+renderCalendar();
+}
+}
+​function getActiveEvents() {
+const activeGroupIds = groups.filter(g => g.active).map(g => g.id);
+return events.filter(e => activeGroupIds.includes(e.groupId));
+}
+​function changeMonth(delta) {
+currentMonth = currentMonth.add(delta, 'month');
+renderCalendar();
+}
+​function renderCalendar() {
+const grid = document.getElementById('calendarGrid');
+const monthDisplay = document.getElementById('calendarMonthDisplay');
+grid.innerHTML = '';
+monthDisplay.innerText = currentMonth.format('YYYY年 M月');
+​const activeEvents = getActiveEvents();
+const startOfMonth = currentMonth.startOf('month');
+const endOfMonth = currentMonth.endOf('month');
+const startDate = startOfMonth.startOf('week');
+const endDate = endOfMonth.endOf('week');
+​let currentDay = startDate;
+while (currentDay.isBefore(endDate) || currentDay.isSame(endDate, 'day')) {
+const isCurrentMonth = currentDay.month() === currentMonth.month();
+const isToday = currentDay.isSame(dayjs(), 'day');
+const dayStr = currentDay.format('YYYY-MM-DD');
+​// 確実に日付を一致させるために文字列で比較
+const dayEvents = activeEvents.filter(e => {
+const evtDateStr = dayjs(e.date).format('YYYY-MM-DD');
+return evtDateStr === dayStr;
+});
+​const cell = document.createElement('div');
+cell.className = calendar-day min-h-[80px] sm:min-h-[100px] border border-gray-100 rounded-2xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col ${isCurrentMonth ? 'bg-white' : 'bg-gray-50/50 opacity-60'} ${isToday ? 'ring-2 ring-primary/30 bg-pink-50/30' : ''};
+cell.onclick = () => {
+document.getElementById('dateFilter').value = dayStr;
+setView('list');
+};
+​let dayContent = <div class="text-right mb-1"> <span class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full text-xs font-bold ${isToday ? 'bg-primary text-white' : (currentDay.day()===0 ? 'text-red-400' : currentDay.day()===6 ? 'text-blue-400' : 'text-gray-600')}"> ${currentDay.date()} </span> </div> <div class="flex flex-col gap-1 overflow-hidden flex-1">;
+​dayEvents.slice(0, 3).forEach(evt => {
+const group = groups.find(g => g.id === evt.groupId);
+dayContent += <div class="text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded-full font-bold text-white shadow-sm" style="background-color: ${group ? group.color : '#ff7ba9'}"> ${dayjs(evt.date).format('HH:mm')} ${group ? group.name.substring(0,3) : '推し'} </div>;
+});
+if(dayEvents.length > 3) {
+dayContent += <div class="text-[10px] text-gray-400 text-center font-bold">+${dayEvents.length - 3}</div>;
+}
+dayContent += </div>;
+cell.innerHTML = dayContent;
+grid.appendChild(cell);
+currentDay = currentDay.add(1, 'day');
+}
+}
+​function renderList() {
+const container = document.getElementById('scheduleTimeline');
+const emptyState = document.getElementById('emptyState');
+container.innerHTML = '';
+​let activeEvents = getActiveEvents();
+const filterDate = document.getElementById('dateFilter').value;
+if (filterDate) {
+activeEvents = activeEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === filterDate);
+}
+​if (activeEvents.length === 0) {
+container.classList.add('hidden');
+emptyState.classList.remove('hidden');
+emptyState.classList.add('flex');
+if (filterDate) emptyState.querySelector('p').innerText = '選択した日付の予定はありません';
+else emptyState.querySelector('p').innerText = 'グループをオンにするか、スプレッドシートを確認してください';
+return;
+}
+​container.classList.remove('hidden');
+emptyState.classList.add('hidden');
+emptyState.classList.remove('flex');
+activeEvents.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+​const groupedEvents = {};
+activeEvents.forEach(evt => {
+const dayStr = dayjs(evt.date).format('YYYY-MM-DD');
+if (!groupedEvents[dayStr]) groupedEvents[dayStr] = [];
+groupedEvents[dayStr].push(evt);
+});
+​Object.keys(groupedEvents).sort().forEach(dayStr => {
+const dayEvents = groupedEvents[dayStr];
+const dDate = dayjs(dayStr);
+const isToday = dDate.isSame(dayjs(), 'day');
+const dayDisplay = dDate.format('M月D日 (ddd)');
+​const dayBlock = document.createElement('div');
+dayBlock.className = 'fade-in relative';
+dayBlock.id = dayblock-${dayStr};
+​let headerHtml = <div class="sticky top-0 z-10 bg-[#fdfbfb]/90 backdrop-blur-md py-3 mb-4 flex items-center gap-3"> <h3 class="text-xl font-extrabold ${isToday ? 'text-primary' : 'text-gray-800'}">${dayDisplay}</h3> ${isToday ? '<span class="bg-primary text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm">今日</span>' : ''} </div>;
+​let eventsHtml = <div class="flex flex-col gap-4">;
+dayEvents.forEach(evt => {
+const group = groups.find(g => g.id === evt.groupId) || { name: 'その他', color: '#ff7ba9', url: '#' };
+const timeStr = dayjs(evt.date).format('HH:mm');
+const mapUrl = evt.location ? https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evt.location)} : '#';
+​const portalBtn = group.url ? <a href="${group.url}" target="_blank" class="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"> <i class="ph-bold ph-link text-lg"></i> ${group.name} の公式リンクへ </a> : '';
+​eventsHtml += <div class="group bg-white rounded-[24px] shadow-soft hover:shadow-soft-lg transition-all relative overflow-hidden border border-gray-50/50"> <div class="absolute left-0 top-0 bottom-0 w-2" style="background-color: ${group.color}"></div> <div class="p-5 cursor-pointer flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 pl-6" onclick="toggleDetails('${evt.id}')"> <div class="text-xl font-extrabold text-gray-700 w-16 shrink-0 tracking-tight">${timeStr}</div> <div class="flex-1"> <div class="flex items-center justify-between mb-2"> <span class="text-xs font-bold px-3 py-1 rounded-full border" style="background-color: ${group.color}10; color: ${group.color}; border-color: ${group.color}30">${group.name}</span> <div class="bg-gray-50 p-1.5 rounded-full group-hover:bg-gray-100 transition-colors"> <i id="chevron-${evt.id}" class="ph-bold ph-caret-down text-gray-400 transition-transform duration-300"></i> </div> </div> <div class="font-bold text-gray-800 text-lg group-hover:text-primary transition-colors flex items-center gap-2"> ${evt.title} </div> </div> <div class="flex flex-col items-start sm:items-end gap-2 mt-2 sm:mt-0"> ${evt.location ?
+<a href="${mapUrl}" target="_blank" onclick="event.stopPropagation()" class="text-gray-500 bg-gray-50 hover:bg-blue-50 hover:text-blue-600 border border-gray-100 hover:border-blue-200 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold w-full sm:w-auto transition-all shadow-sm">
+<i class="ph-fill ph-map-pin text-base"></i> ${evt.location}
+</a>
+` : ''}
+</div>
+</div>
+​<div id="details-${evt.id}" class="details-content bg-slate-50/50 border-t border-gray-100">
+<div class="p-5 sm:px-6 text-sm space-y-5">
+${evt.ticketUrl ?  <div class="flex items-start gap-4"> <div class="bg-blue-100 text-blue-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-ticket text-lg"></i></div> <div> <span class="font-bold text-gray-500 block text-xs mb-1">チケット情報</span> <a href="${evt.ticketUrl}" target="_blank" class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-bold flex items-center gap-1">販売サイトを開く <i class="ph-bold ph-arrow-up-right text-xs"></i></a> </div> </div> : ''}
+​${evt.nyutoku ?  <div class="flex items-start gap-4"> <div class="bg-rose-100 text-rose-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-gift text-lg"></i></div> <div> <span class="font-bold text-gray-500 block text-xs mb-1">入場特典 (入特)</span> <span class="text-gray-800 font-bold">${evt.nyutoku}</span> </div> </div> : ''}
+​${evt.regulation ?  <div class="flex items-start gap-4"> <div class="bg-amber-100 text-amber-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-camera text-lg"></i></div> <div> <span class="font-bold text-gray-500 block text-xs mb-1">イベント詳細・レギュレーション</span> <span class="text-gray-800 font-medium whitespace-pre-line leading-relaxed block bg-white p-3 rounded-xl border border-gray-100 mt-1 shadow-sm">${evt.regulation}</span> </div> </div> : ''}
+​${portalBtn}
+</div>
+</div>
+</div>
+; }); eventsHtml += </div>`;
+dayBlock.innerHTML = headerHtml + eventsHtml;
+container.appendChild(dayBlock);
+});
+}
+​window.toggleDetails = function(eventId) {
+const detailsElement = document.getElementById(details-${eventId});
+const chevron = document.getElementById(chevron-${eventId});
+if (detailsElement.classList.contains('expanded')) {
+detailsElement.classList.remove('expanded');
+chevron.classList.remove('rotate-180');
+} else {
+detailsElement.classList.add('expanded');
+chevron.classList.add('rotate-180');
+}
+};
+​window.toggleGroupActive = function(groupId) {
+const group = groups.find(g => g.id === groupId);
+if (group) {
+group.active = !group.active;
+saveUserData();
+renderSidebar();
+renderCurrentView();
+}
+};
+​function toggleMobileSidebar() {
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+if (sidebar.classList.contains('-translate-x-full')) {
+sidebar.classList.remove('-translate-x-full');
+overlay.classList.remove('hidden');
+setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+} else {
+sidebar.classList.add('-translate-x-full');
+overlay.classList.add('opacity-0');
+setTimeout(() => overlay.classList.add('hidden'), 300);
+}
+}
+​function openAddModal() {
+document.getElementById('addGroupForm').reset();
+document.getElementById('editingGroupId').value = '';
+document.getElementById('modalTitle').innerText = '推しをアプリに追加';
+document.getElementById('submitBtnText').innerText = '追加してポータルを作成';
+document.getElementById('deleteBtn').classList.add('hidden');
+showModalBase();
+}
+​window.openEditModal = function(groupId) {
+const group = groups.find(g => g.id === groupId);
+if (!group) return;
+​document.getElementById('editingGroupId').value = group.id;
+document.getElementById('groupName').value = group.name;
+document.getElementById('sourceType').value = group.source;
+document.getElementById('sourceUrl').value = group.url || '';
+​const colorRadio = document.querySelector(input[name="color"][value="${group.color}"]);
+if (colorRadio) colorRadio.checked = true;
+​document.getElementById('modalTitle').innerText = '推しの情報を編集';
+document.getElementById('submitBtnText').innerText = '変更を保存する';
+document.getElementById('deleteBtn').classList.remove('hidden');
+​showModalBase();
+};
+​function showModalBase() {
+const modal = document.getElementById('addModal');
+const content = document.getElementById('addModalContent');
+modal.classList.remove('hidden');
+setTimeout(() => {
+modal.classList.remove('opacity-0');
+content.classList.remove('scale-95');
+}, 10);
+if (!document.getElementById('sidebar').classList.contains('-translate-x-full')) {
+toggleMobileSidebar();
+}
+}
+​function closeModal() {
+const modal = document.getElementById('addModal');
+const content = document.getElementById('addModalContent');
+modal.classList.add('opacity-0');
+content.classList.add('scale-95');
+setTimeout(() => {
+modal.classList.add('hidden');
+document.getElementById('addGroupForm').reset();
+}, 300);
+}
+​function handleSaveGroup(e) {
+e.preventDefault();
+const editingId = document.getElementById('editingGroupId').value;
+const name = document.getElementById('groupName').value;
+const sourceType = document.getElementById('sourceType').value;
+const sourceUrl = document.getElementById('sourceUrl').value;
+const color = document.querySelector('input[name="color"]:checked').value;
+​if (editingId) {
+const groupIndex = groups.findIndex(g => g.id === editingId);
+if(groupIndex !== -1) {
+groups[groupIndex].name = name;
+groups[groupIndex].color = color;
+groups[groupIndex].source = sourceType;
+groups[groupIndex].url = sourceUrl;
+showToast(${name}の情報を更新しました！);
+}
+} else {
+const newGroup = {
+id: 'g' + Date.now(),
+name: name,
+color: color,
+active: true,
+source: sourceType,
+url: sourceUrl
+};
+groups.push(newGroup);
+showToast(${name}をポータルに追加しました！);
+}
+​sortGroups();
+saveUserData();
+closeModal();
+renderSidebar();
+renderCurrentView();
+}
+​window.deleteCurrentGroup = function() {
+const editingId = document.getElementById('editingGroupId').value;
+const groupIndex = groups.findIndex(g => g.id === editingId);
+​if (groupIndex !== -1) {
+const confirmDelete = confirm(${groups[groupIndex].name} をリストから削除してもよろしいですか？);
+if (confirmDelete) {
+const name = groups[groupIndex].name;
+groups.splice(groupIndex, 1);
+sortGroups();
+saveUserData();
+closeModal();
+renderSidebar();
+renderCurrentView();
+showToast(${name}を削除しました);
+}
+}
+};
+​function showToast(message) {
+const toast = document.getElementById('toast');
+document.getElementById('toastMessage').innerText = message;
+toast.classList.remove('translate-y-10', 'opacity-0');
+setTimeout(() => {
+toast.classList.add('translate-y-10', 'opacity-0');
+}, 3000);
+}
+​window.resetToToday = function() {
+if (currentView === 'list') {
+document.getElementById('dateFilter').value = '';
+renderCurrentView();
+const todayStr = dayjs().format('YYYY-MM-DD');
+const todayBlock = document.getElementById(dayblock-${todayStr});
+if (todayBlock) {
+todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+showToast('今日の予定に移動しました');
+} else {
+document.getElementById('scheduleMain').scrollTo({ top: 0, behavior: 'smooth' });
+showToast('直近の今日の予定はありません');
+}
+} else {
+currentMonth = dayjs().startOf('month');
+renderCalendar();
+showToast('今月に戻りました');
+}
+};
+</script>
 </body>
 </html>
-```
