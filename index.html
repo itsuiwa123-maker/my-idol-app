@@ -1,4 +1,4 @@
-```h
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -236,12 +236,17 @@
         let currentView = 'list';
         let currentMonth = dayjs().startOf('month');
 
-        // スマホの保存領域からデータを読み込む（なければ初期値）
+        // 【自動更新対応】Googleスプレッドシートや外部CSVから自動取得する設定（必要に応じてURLを変更可能）
+        // ※空欄の場合は自動でモックデータが生成されます
+        const AUTO_SYNC_CSV_URL = ""; 
+
+        // データのロード（アカウントごとに端末内でのみON/OFF設定を記憶）
         function loadUserData() {
-            const saved = localStorage.getItem('oshi_cal_groups');
-            if (saved) {
+            // グループデータの読み込み（なければ初期値）
+            const savedGroups = localStorage.getItem('oshi_cal_groups');
+            if (savedGroups) {
                 try {
-                    groups = JSON.parse(saved);
+                    groups = JSON.parse(savedGroups);
                 } catch(e) {
                     groups = defaultGroups;
                 }
@@ -289,13 +294,23 @@
             return newEvents;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        async function initializeApp() {
             loadUserData();
-            
-            // グループごとのモックイベントを生成
-            groups.forEach(g => {
-                events = events.concat(generateMockEvents(g.id, 5));
-            });
+
+            // 自動更新データ（スプレッドシート等）がある場合は読み込む、なければモック生成
+            if (AUTO_SYNC_CSV_URL) {
+                try {
+                    const response = await fetch(AUTO_SYNC_CSV_URL);
+                    const csvText = await response.text();
+                    // CSVパース処理などの拡張ポイント
+                    events = parseCSVToEvents(csvText);
+                } catch(e) {
+                    console.error("自動更新データの取得に失敗しました。モックデータを使用します。", e);
+                    loadDefaultEvents();
+                }
+            } else {
+                loadDefaultEvents();
+            }
 
             renderSidebar();
             renderCurrentView();
@@ -308,7 +323,16 @@
                 if (e.target.id === 'addModal') closeModal();
             });
             document.getElementById('addGroupForm').addEventListener('submit', handleAddGroup);
-        });
+        }
+
+        function loadDefaultEvents() {
+            events = [];
+            groups.forEach(g => {
+                events = events.concat(generateMockEvents(g.id, 5));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
 
         function renderSidebar() {
             const container = document.getElementById('groupList');
@@ -329,7 +353,7 @@
                         <div class="flex flex-col">
                             <span class="text-sm font-bold text-gray-800 leading-tight">${group.name}</span>
                             <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 font-medium">
-                                <i class="ph-fill ${sourceIcon}"></i> 同期中
+                                <i class="ph-fill ${sourceIcon}"></i> 自動同期中
                             </div>
                         </div>
                     </div>
@@ -429,8 +453,8 @@
                 dayEvents.slice(0, 3).forEach(evt => {
                     const group = groups.find(g => g.id === evt.groupId);
                     dayContent += `
-                        <div class="text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded-full font-bold text-white shadow-sm" style="background-color: ${group.color}">
-                            ${dayjs(evt.date).format('HH:mm')} ${group.name.substring(0,3)}
+                        <div class="text-[10px] sm:text-xs truncate px-1.5 py-0.5 rounded-full font-bold text-white shadow-sm" style="background-color: ${group ? group.color : '#ff7ba9'}">
+                            ${dayjs(evt.date).format('HH:mm')} ${group ? group.name.substring(0,3) : '推し'}
                         </div>
                     `;
                 });
@@ -495,7 +519,7 @@
                 
                 let eventsHtml = `<div class="flex flex-col gap-4">`;
                 dayEvents.forEach(evt => {
-                    const group = groups.find(g => g.id === evt.groupId);
+                    const group = groups.find(g => g.id === evt.groupId) || { name: 'その他', color: '#ff7ba9' };
                     const timeStr = dayjs(evt.date).format('HH:mm');
                     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evt.location)}`;
                     
@@ -529,21 +553,21 @@
                                         <div class="bg-blue-100 text-blue-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-ticket text-lg"></i></div>
                                         <div>
                                             <span class="font-bold text-gray-500 block text-xs mb-1">チケット情報</span>
-                                            <a href="${evt.ticketUrl}" target="_blank" class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-bold flex items-center gap-1">販売サイトを開く <i class="ph-bold ph-arrow-up-right text-xs"></i></a>
+                                            <a href="${evt.ticketUrl || '#'}" target="_blank" class="text-blue-600 hover:text-blue-700 hover:underline text-sm font-bold flex items-center gap-1">販売サイトを開く <i class="ph-bold ph-arrow-up-right text-xs"></i></a>
                                         </div>
                                     </div>
                                     <div class="flex items-start gap-4">
                                         <div class="bg-rose-100 text-rose-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-gift text-lg"></i></div>
                                         <div>
                                             <span class="font-bold text-gray-500 block text-xs mb-1">入場特典 (入特)</span>
-                                            <span class="text-gray-800 font-bold">${evt.nyutoku}</span>
+                                            <span class="text-gray-800 font-bold">${evt.nyutoku || 'なし'}</span>
                                         </div>
                                     </div>
                                     <div class="flex items-start gap-4">
                                         <div class="bg-amber-100 text-amber-600 p-2 rounded-xl mt-0.5 shadow-sm"><i class="ph-bold ph-camera text-lg"></i></div>
                                         <div>
                                             <span class="font-bold text-gray-500 block text-xs mb-1">特典会レギュレーション</span>
-                                            <span class="text-gray-800 font-medium whitespace-pre-line leading-relaxed block bg-white p-3 rounded-xl border border-gray-100 mt-1 shadow-sm">${evt.regulation}</span>
+                                            <span class="text-gray-800 font-medium whitespace-pre-line leading-relaxed block bg-white p-3 rounded-xl border border-gray-100 mt-1 shadow-sm">${evt.regulation || '未発表'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -573,7 +597,7 @@
             const group = groups.find(g => g.id === groupId);
             if (group) {
                 group.active = !group.active;
-                saveUserData(); // 端末に設定を保存
+                saveUserData(); 
                 renderSidebar();
                 renderCurrentView();
             }
@@ -636,7 +660,7 @@
             const newEvents = generateMockEvents(newGroupId, 6);
             events = events.concat(newEvents);
 
-            saveUserData(); // 端末に保存
+            saveUserData(); 
             closeModal();
             renderSidebar();
             renderCurrentView();
