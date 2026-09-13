@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oshi-Cal - 推し活スケジュール管理</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%85%3C/text%3E%3C/svg%3E">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#ec4899">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isToday.js"></script>
@@ -109,6 +112,9 @@
             <button onclick="openGroupAddModal()" class="mt-4 w-full py-3 bg-gradient-to-r from-pink-50 to-purple-50 text-pink-600 font-bold rounded-2xl hover:from-pink-100 hover:to-purple-100 transition text-xs border border-pink-100 shadow-sm">
                 <i class="fa-solid fa-plus mr-1.5"></i> 新しいグループを追加
             </button>
+            <button id="notify-toggle-btn" onclick="requestNotificationPermission()" class="mt-2 w-full py-3 bg-slate-50 text-slate-500 font-bold rounded-2xl hover:bg-slate-100 transition text-xs border border-slate-100">
+                <i class="fa-solid fa-bell mr-1.5"></i> <span id="notify-toggle-label">新着ライブの通知を受け取る</span>
+            </button>
         </div>
     </div>
 
@@ -182,7 +188,10 @@
         <div class="absolute right-0 top-0 bottom-0 w-80 max-w-[90vw] bg-white shadow-2xl p-6 flex flex-col transform translate-x-full transition-transform duration-300" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4 border-b border-pink-50 pb-4">
                 <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-heart mr-2 text-pink-500"></i>お気に入り</h3>
-                <button onclick="toggleFavMenu()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center space-x-1">
+                    <button onclick="openFavInNewTab()" title="新しいタブで開く" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center"><i class="fa-solid fa-up-right-from-square text-xs"></i></button>
+                    <button onclick="toggleFavMenu()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="flex space-x-2 mb-2">
                 <button onclick="shareImageOfFavorites()" class="flex-1 py-2.5 bg-pink-50 text-pink-600 font-bold rounded-2xl text-[10px] border border-pink-100 hover:bg-pink-100 transition flex items-center justify-center space-x-1">
@@ -293,6 +302,8 @@
             
             const manualEvents = events.filter(e => !e.isSheet);
             events = [...manualEvents, ...sheetEvents];
+
+            checkForNewSheetEvents(sheetEvents);
             
             if (sheetEvents.length > 0) {
                 // スプレッドシートの行順（=日付順とは限らない）に依存せず、
@@ -1089,10 +1100,109 @@
             render();
         }
 
+        // ==== お気に入りを新しいタブで開く ====
+        function openFavInNewTab() {
+            const url = new URL(window.location.href);
+            url.hash = '';
+            url.searchParams.set('view', 'favorites');
+            window.open(url.toString(), '_blank');
+        }
+
+        // ==== 通知まわり ====
+        function updateNotifyToggleUI() {
+            const label = document.getElementById('notify-toggle-label');
+            if (!label || !('Notification' in window)) {
+                if (label) label.textContent = 'このブラウザは通知に対応していません';
+                return;
+            }
+            if (Notification.permission === 'granted') {
+                label.textContent = '新着ライブの通知：オン';
+            } else if (Notification.permission === 'denied') {
+                label.textContent = '通知がブロックされています（ブラウザ設定から許可してね）';
+            } else {
+                label.textContent = '新着ライブの通知を受け取る';
+            }
+        }
+
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('このブラウザは通知に対応していません');
+                return;
+            }
+            if (Notification.permission === 'default') {
+                await Notification.requestPermission();
+            } else if (Notification.permission === 'denied') {
+                alert('通知がブロックされています。ブラウザのサイト設定から「通知」を許可にしてね。');
+            }
+            updateNotifyToggleUI();
+        }
+
+        async function showLocalNotification(title, body) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            try {
+                if ('serviceWorker' in navigator) {
+                    const reg = await navigator.serviceWorker.ready;
+                    if (reg.active) {
+                        reg.active.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+                        return;
+                    }
+                }
+                new Notification(title, { body, icon: './icon-192.png' });
+            } catch (e) { /* 通知に失敗しても致命的ではないので握りつぶす */ }
+        }
+
+        // スプレッドシートを再取得した際、前回チェック時になかった予定を検出して通知する
+        function checkForNewSheetEvents(sheetEvents) {
+            const KEY = 'oshi_cal_known_sheet_ids';
+            let knownIds = null;
+            try { knownIds = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+
+            const currentIds = sheetEvents.map(e => e.id);
+
+            if (!Array.isArray(knownIds)) {
+                // 初回はまだ「新着」の基準がないので、今の状態を基準として保存するだけ
+                localStorage.setItem(KEY, JSON.stringify(currentIds));
+                return;
+            }
+
+            const knownSet = new Set(knownIds);
+            const newOnes = sheetEvents.filter(e => !knownSet.has(e.id));
+
+            localStorage.setItem(KEY, JSON.stringify(currentIds));
+
+            if (newOnes.length === 0) return;
+
+            const sorted = newOnes.slice().sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+            const first = sorted[0];
+            const dateFormatted = dayjs(first.date).isValid() ? dayjs(first.date).format('M/D') : first.date;
+            const body = newOnes.length === 1
+                ? `${dateFormatted} ${first.group}「${first.title}」`
+                : `${dateFormatted} ${first.group}「${first.title}」ほか${newOnes.length - 1}件`;
+
+            showLocalNotification('新しいライブ予定が追加されました🎫', body);
+        }
+
+        // PWA: Service Worker登録（インストール対応 + 通知の土台）
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+
         window.onload = async () => {
             loadUserData();
             render();
+            updateNotifyToggleUI();
+            registerServiceWorker();
             await fetchSheetData();
+
+            // アプリを開いたままにしている間も、一定間隔で新着をチェックする
+            setInterval(fetchSheetData, 15 * 60 * 1000);
+
+            // ?view=favorites 付きで開かれた場合は、お気に入りパネルを自動で開く
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('view') === 'favorites') {
+                toggleFavMenu();
+            }
         };
     </script>
 </body>
