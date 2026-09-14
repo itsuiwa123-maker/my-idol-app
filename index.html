@@ -315,16 +315,56 @@
             }
         }
 
+        // ちゃんとしたCSV解析（ダブルクォートで囲まれた中のカンマ・改行はそのまま1つの値として扱う）
+        function parseCSVRows(text) {
+            const rows = [];
+            let row = [];
+            let field = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (inQuotes) {
+                    if (char === '"') {
+                        if (text[i + 1] === '"') { field += '"'; i++; }
+                        else { inQuotes = false; }
+                    } else {
+                        field += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ',') {
+                        row.push(field);
+                        field = '';
+                    } else if (char === '\r') {
+                        // 無視（\nで改行を処理する）
+                    } else if (char === '\n') {
+                        row.push(field);
+                        rows.push(row);
+                        row = [];
+                        field = '';
+                    } else {
+                        field += char;
+                    }
+                }
+            }
+            if (field.length > 0 || row.length > 0) {
+                row.push(field);
+                rows.push(row);
+            }
+            return rows;
+        }
+
         function parseCSV(csvText) {
-            const lines = csvText.split('\n');
+            const rows = parseCSVRows(csvText);
             let sheetEvents = [];
             let newGroupsFound = false;
 
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                
-                const cols = line.split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i].map(c => c.trim());
+                if (!cols.some(c => c)) continue; // 完全に空の行はスキップ
+
                 if (cols.length >= 4) {
                     const rawDate = cols[0];
                     let parsedDate = dayjs(rawDate);
