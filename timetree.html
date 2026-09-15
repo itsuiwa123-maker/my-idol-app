@@ -200,24 +200,39 @@
             `).join('');
         }
 
+        let expandedActions = new Set();
+
+        function toggleCardActions(index) {
+            if (expandedActions.has(index)) {
+                expandedActions.delete(index);
+            } else {
+                expandedActions.add(index);
+            }
+            renderPanel();
+        }
+
         function groupCardHtml(g, index, height, showReorder) {
             const reorderHtml = showReorder ? `
                             <button onclick="moveGroup(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-7 h-7 rounded-lg text-slate-400 hover:text-pink-600 hover:bg-pink-50 flex items-center justify-center transition disabled:opacity-30"><i class="fa-solid fa-arrow-up text-[11px]"></i></button>
                             <button onclick="moveGroup(${index}, 1)" ${index === groups.length - 1 ? 'disabled' : ''} class="w-7 h-7 rounded-lg text-slate-400 hover:text-pink-600 hover:bg-pink-50 flex items-center justify-center transition disabled:opacity-30"><i class="fa-solid fa-arrow-down text-[11px]"></i></button>
             ` : '';
+            const isExpanded = expandedActions.has(index);
             return `
                 <div class="bg-white rounded-3xl p-3 shadow-sm border border-pink-100/60 overflow-hidden">
-                    <div class="flex items-center justify-between px-1 pb-2">
-                        <div class="flex items-center space-x-2 min-w-0">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="flex items-center space-x-2 min-w-0 flex-1">
                             <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color:${g.color}"></span>
                             <h2 class="text-sm font-bold text-slate-700 truncate">${g.name}</h2>
                         </div>
-                        <div class="flex items-center space-x-1 flex-shrink-0">
+                        <button onclick="toggleCardActions(${index})" class="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center transition ${isExpanded ? 'bg-pink-50 text-pink-600' : 'text-slate-400 hover:text-pink-600 hover:bg-pink-50'}"><i class="fa-solid fa-ellipsis text-xs"></i></button>
+                    </div>
+                    ${isExpanded ? `
+                        <div class="flex items-center justify-end space-x-1 px-1 pt-1.5 pb-1">
                             ${reorderHtml}
                             <button onclick="openGroupModal(${index})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-pink-600 hover:bg-pink-50 flex items-center justify-center transition"><i class="fa-solid fa-pen text-[11px]"></i></button>
                             <button onclick="deleteGroup(${index})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition"><i class="fa-solid fa-trash text-[11px]"></i></button>
                         </div>
-                    </div>
+                    ` : '<div class="pb-2"></div>'}
                     <iframe
                         src="${embedUrl(g.calendarId)}"
                         class="w-full rounded-2xl border border-pink-50"
